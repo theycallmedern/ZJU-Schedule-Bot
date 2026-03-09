@@ -61,9 +61,19 @@ async function migrateSchema(db) {
     }
   }
 
-  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_users_group_name ON users(group_name)');
-  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_users_notifications_enabled ON users(notifications_enabled)');
-  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_schedule_group_weekday ON schedule(group_name, weekday)');
+  await runSqlSafe(db, 'CREATE INDEX IF NOT EXISTS idx_users_group_name ON users(group_name)');
+  await runSqlSafe(db, 'CREATE INDEX IF NOT EXISTS idx_users_notifications_enabled ON users(notifications_enabled)');
+
+  const scheduleColumns = await getTableColumns(db, 'schedule');
+  const scheduleColumnList = [...scheduleColumns];
+  const scheduleGroupCol = pickColumn(scheduleColumnList, ['group_name', 'group', 'group_id']);
+  const scheduleWeekdayCol = pickColumn(scheduleColumnList, ['weekday', 'day_of_week', 'week_day', 'day']);
+  if (scheduleGroupCol && scheduleWeekdayCol) {
+    await runSqlSafe(
+      db,
+      `CREATE INDEX IF NOT EXISTS idx_schedule_group_weekday ON schedule(${quoteIdent(scheduleGroupCol)}, ${quoteIdent(scheduleWeekdayCol)})`
+    );
+  }
 }
 
 async function getTableColumns(db, tableName) {
@@ -369,5 +379,13 @@ async function runSql(db, sql) {
   } catch (error) {
     console.error('schema_sql_error', { sql, error: String(error) });
     throw error;
+  }
+}
+
+async function runSqlSafe(db, sql) {
+  try {
+    await db.prepare(sql).run();
+  } catch (error) {
+    console.error('schema_sql_warning', { sql, error: String(error) });
   }
 }
