@@ -6,6 +6,9 @@ export default {
   async fetch(request, env, ctx) {
     try {
       await ensureSchema(env.DB);
+      if (!env.BOT_TOKEN) {
+        console.error('missing_bot_token');
+      }
 
       const url = new URL(request.url);
       if (request.method === 'GET' && url.pathname === '/health') {
@@ -17,7 +20,13 @@ export default {
       }
 
       const update = await request.json();
-      ctx.waitUntil(handleUpdate(update, env));
+      ctx.waitUntil((async () => {
+        try {
+          await handleUpdate(update, env);
+        } catch (error) {
+          console.error('update_handler_error', error);
+        }
+      })());
       return new Response('ok', { status: 200 });
     } catch (error) {
       console.error('fetch_handler_error', error);
@@ -28,7 +37,16 @@ export default {
   async scheduled(event, env, ctx) {
     try {
       await ensureSchema(env.DB);
-      ctx.waitUntil(handleScheduled(event, env));
+      if (!env.BOT_TOKEN) {
+        console.error('missing_bot_token');
+      }
+      ctx.waitUntil((async () => {
+        try {
+          await handleScheduled(event, env);
+        } catch (error) {
+          console.error('scheduled_task_error', error);
+        }
+      })());
     } catch (error) {
       console.error('scheduled_handler_error', error);
     }

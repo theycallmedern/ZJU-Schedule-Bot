@@ -36,59 +36,40 @@ const USER_COLUMN_MIGRATIONS = [
 
 export async function ensureSchema(db) {
   if (!schemaReadyPromise) {
-    schemaReadyPromise = migrateSchema(db);
+    schemaReadyPromise = migrateSchema(db).catch((error) => {
+      schemaReadyPromise = undefined;
+      throw error;
+    });
   }
   return schemaReadyPromise;
 }
 
 async function migrateSchema(db) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      chat_id INTEGER PRIMARY KEY,
-      group_name TEXT,
-      language TEXT NOT NULL DEFAULT 'en',
-      notifications_enabled INTEGER NOT NULL DEFAULT 1,
-      reminder_minutes INTEGER NOT NULL DEFAULT 10,
-      morning_enabled INTEGER NOT NULL DEFAULT 1,
-      last_morning_sent TEXT,
-      last_reminder_key TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+  await runSql(
+    db,
+    "CREATE TABLE IF NOT EXISTS users (chat_id INTEGER PRIMARY KEY, group_name TEXT, language TEXT NOT NULL DEFAULT 'en', notifications_enabled INTEGER NOT NULL DEFAULT 1, reminder_minutes INTEGER NOT NULL DEFAULT 10, morning_enabled INTEGER NOT NULL DEFAULT 1, last_morning_sent TEXT, last_reminder_key TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)"
+  );
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS schedule (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      group_name TEXT NOT NULL,
-      weekday INTEGER NOT NULL,
-      lesson_number INTEGER,
-      start_time TEXT NOT NULL,
-      end_time TEXT NOT NULL,
-      subject TEXT NOT NULL,
-      teacher TEXT,
-      classroom TEXT
-    );
-  `);
+  await runSql(
+    db,
+    'CREATE TABLE IF NOT EXISTS schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, group_name TEXT NOT NULL, weekday INTEGER NOT NULL, lesson_number INTEGER, start_time TEXT NOT NULL, end_time TEXT NOT NULL, subject TEXT NOT NULL, teacher TEXT, classroom TEXT)'
+  );
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS announcements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      kind TEXT,
-      text TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
+  await runSql(
+    db,
+    'CREATE TABLE IF NOT EXISTS announcements (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, text TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP)'
+  );
 
   const userColumns = await getTableColumns(db, 'users');
   for (const migration of USER_COLUMN_MIGRATIONS) {
     if (!userColumns.has(migration.name)) {
-      await db.exec(migration.sql);
+      await runSql(db, migration.sql);
     }
   }
 
-  await db.exec('CREATE INDEX IF NOT EXISTS idx_users_group_name ON users(group_name)');
-  await db.exec('CREATE INDEX IF NOT EXISTS idx_users_notifications_enabled ON users(notifications_enabled)');
-  await db.exec('CREATE INDEX IF NOT EXISTS idx_schedule_group_weekday ON schedule(group_name, weekday)');
+  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_users_group_name ON users(group_name)');
+  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_users_notifications_enabled ON users(notifications_enabled)');
+  await runSql(db, 'CREATE INDEX IF NOT EXISTS idx_schedule_group_weekday ON schedule(group_name, weekday)');
 }
 
 async function getTableColumns(db, tableName) {
@@ -377,4 +358,13 @@ function pickColumn(columns, candidates) {
 
 function quoteIdent(identifier) {
   return `"${String(identifier).replaceAll('"', '""')}"`;
+}
+
+async function runSql(db, sql) {
+  try {
+    await db.prepare(sql).run();
+  } catch (error) {
+    console.error('schema_sql_error', { sql, error: String(error) });
+    throw error;
+  }
 }
