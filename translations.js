@@ -1,6 +1,5 @@
 const TRANSLATIONS = {
   en: {
-    languageName: 'English',
     menu: {
       today: '📅 Today',
       tomorrow: '📆 Tomorrow',
@@ -28,7 +27,6 @@ const TRANSLATIONS = {
       pickNotifications: 'Choose reminder settings:',
       invalidGroup: '❌ Unknown group. Available groups: {groups}',
       todayUsage: 'Usage: <code>/today 2-8</code>',
-      openingSettings: '⚙️ Settings menu',
       mainMenu: '✅ Main menu'
     },
     start: {
@@ -54,7 +52,6 @@ const TRANSLATIONS = {
       nextClassTitle: '📚 <b>Next class</b>',
       currentClassTitle: '📚 <b>Current class</b>',
       noMoreToday: '✅ No more classes today.',
-      firstClassIn: 'First class in: <b>{time}</b>',
       quickGroupHeader: '👥 Quick view for group: <b>{group}</b>'
     },
     settings: {
@@ -129,7 +126,7 @@ const TRANSLATIONS = {
     },
     help: {
       title: '❓ <b>Help</b>',
-      body: 'Use buttons or commands below:\n\n/start - start bot\n/help - show this help\n/today - today schedule\n/today 2-8 - quick schedule for selected group\n/tomorrow - tomorrow schedule\n/week - full week\n/next - next or current class\n/settings - open settings\n/mysettings - show your settings\n/changegroup - choose group\n/morning - toggle daily updates\n\nButtons:\n📅 Today\n📆 Tomorrow\n📖 Full week\n📚 Next class\n⚙️ Settings\n\nSettings:\n🌐 Language\n🔔 Notifications\n🧾 My settings\n🔄 Change group\n🌅 Daily updates',
+      body: 'Use buttons or commands below:\n\n/start - start bot\n/help - show this help\n/today - today schedule\n/today 2-8 - quick schedule for any supported group\n/tomorrow - tomorrow schedule\n/week - full week\n/next - next or current class\n/settings - open settings\n/mysettings - show your settings\n/changegroup - choose group\n/morning - toggle daily updates\n\nButtons:\n📅 Today\n📆 Tomorrow\n📖 Full week\n📚 Next class\n⚙️ Settings\n\nSettings:\n🌐 Language\n🔔 Notifications\n🧾 My settings\n🔄 Change group\n🌅 Daily updates',
       admin: '\n\nAdmin:\n/stats - bot stats\n/broadcast text - send to all users\n/broadcastgroup 2-7 text - send to one group'
     },
     weekdays: {
@@ -147,7 +144,6 @@ const TRANSLATIONS = {
     }
   },
   ru: {
-    languageName: 'Русский',
     menu: {
       today: '📅 Сегодня',
       tomorrow: '📆 Завтра',
@@ -175,7 +171,6 @@ const TRANSLATIONS = {
       pickNotifications: 'Выберите настройки напоминаний:',
       invalidGroup: '❌ Неизвестная группа. Доступные группы: {groups}',
       todayUsage: 'Использование: <code>/today 2-8</code>',
-      openingSettings: '⚙️ Меню настроек',
       mainMenu: '✅ Главное меню'
     },
     start: {
@@ -201,7 +196,6 @@ const TRANSLATIONS = {
       nextClassTitle: '📚 <b>Следующая пара</b>',
       currentClassTitle: '📚 <b>Текущая пара</b>',
       noMoreToday: '✅ На сегодня пар больше нет.',
-      firstClassIn: 'До первой пары: <b>{time}</b>',
       quickGroupHeader: '👥 Быстрый просмотр группы: <b>{group}</b>'
     },
     settings: {
@@ -276,7 +270,7 @@ const TRANSLATIONS = {
     },
     help: {
       title: '❓ <b>Помощь</b>',
-      body: 'Используйте кнопки или команды:\n\n/start - запуск бота\n/help - это сообщение\n/today - расписание на сегодня\n/today 2-8 - быстро посмотреть группу\n/tomorrow - расписание на завтра\n/week - расписание на неделю\n/next - следующая или текущая пара\n/settings - открыть настройки\n/mysettings - показать ваши настройки\n/changegroup - выбрать группу\n/morning - переключить ежедневные сообщения\n\nКнопки:\n📅 Сегодня\n📆 Завтра\n📖 Вся неделя\n📚 Следующая пара\n⚙️ Настройки\n\nВ настройках:\n🌐 Язык\n🔔 Уведомления\n🧾 Мои настройки\n🔄 Сменить группу\n🌅 Ежедневные сообщения',
+      body: 'Используйте кнопки или команды:\n\n/start - запуск бота\n/help - это сообщение\n/today - расписание на сегодня\n/today 2-8 - быстро посмотреть любую доступную группу\n/tomorrow - расписание на завтра\n/week - расписание на неделю\n/next - следующая или текущая пара\n/settings - открыть настройки\n/mysettings - показать ваши настройки\n/changegroup - выбрать группу\n/morning - переключить ежедневные сообщения\n\nКнопки:\n📅 Сегодня\n📆 Завтра\n📖 Вся неделя\n📚 Следующая пара\n⚙️ Настройки\n\nВ настройках:\n🌐 Язык\n🔔 Уведомления\n🧾 Мои настройки\n🔄 Сменить группу\n🌅 Ежедневные сообщения',
       admin: '\n\nАдмин:\n/stats - статистика\n/broadcast текст - рассылка всем\n/broadcastgroup 2-7 текст - рассылка одной группе'
     },
     weekdays: {

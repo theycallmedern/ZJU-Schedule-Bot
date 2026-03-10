@@ -13,7 +13,7 @@ Production-like Telegram schedule bot on **Cloudflare Workers** with these featu
 - evening preview of tomorrow schedule
 - automatic admin daily delivery report (morning/reminders/evening)
 - reminder cron every 2 minutes
-- D1 storage
+- D1 storage for users, settings and delivery stats
 
 No npm libraries are used.
 
@@ -163,6 +163,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 ## Admin commands
 
 - `/broadcast <text>` - sends message to all users
+- `/broadcastgroup <group> <text>` - sends message to one group
 - `/stats` - total users, users by group, enabled notifications + today's delivery stats
 - `/today <group>` - quick one-time today schedule for any supported group
 - `/help` - command/help overview
