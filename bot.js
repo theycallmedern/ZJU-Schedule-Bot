@@ -28,6 +28,7 @@ import {
   CONFIG,
   addDays,
   fetchHangzhouWeather,
+  getBotInstanceId,
   getAdminId,
   getNowContext,
   getZonedDateParts,
@@ -51,7 +52,8 @@ export async function handleUpdate(update, env) {
 
   const text = message.text.trim();
   const defaultLang = pickLanguageByTelegram(message.from?.language_code);
-  let user = await ensureUser(env.DB, chatId, defaultLang);
+  const botInstanceId = getBotInstanceId(env);
+  let user = await ensureUser(env.DB, chatId, defaultLang, botInstanceId);
   let language = resolveLanguage(user?.language ?? defaultLang);
 
   if (text.startsWith('/')) {

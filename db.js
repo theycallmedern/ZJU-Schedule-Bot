@@ -35,6 +35,10 @@ const USER_COLUMN_MIGRATIONS = [
   {
     name: 'last_evening_sent',
     sql: 'ALTER TABLE users ADD COLUMN last_evening_sent TEXT'
+  },
+  {
+    name: 'bot_fingerprint',
+    sql: 'ALTER TABLE users ADD COLUMN bot_fingerprint TEXT'
   }
 ];
 
@@ -103,11 +107,28 @@ async function tableExists(db, tableName) {
   return Boolean(row?.name);
 }
 
-export async function ensureUser(db, chatId, language) {
+export async function ensureUser(db, chatId, language, botFingerprint = '') {
   await db
-    .prepare('INSERT INTO users (chat_id, language) VALUES (?, ?) ON CONFLICT(chat_id) DO NOTHING')
-    .bind(chatId, language)
+    .prepare('INSERT INTO users (chat_id, language, bot_fingerprint) VALUES (?, ?, ?) ON CONFLICT(chat_id) DO NOTHING')
+    .bind(chatId, language, botFingerprint || null)
     .run();
+
+  if (botFingerprint) {
+    const row = await db
+      .prepare('SELECT bot_fingerprint FROM users WHERE chat_id = ?')
+      .bind(chatId)
+      .first();
+
+    const storedFingerprint = String(row?.bot_fingerprint ?? '');
+    if (!storedFingerprint || storedFingerprint !== botFingerprint) {
+      await db
+        .prepare(
+          'UPDATE users SET bot_fingerprint = ?, group_name = NULL, last_morning_sent = NULL, last_reminder_key = NULL, last_evening_sent = NULL WHERE chat_id = ?'
+        )
+        .bind(botFingerprint, chatId)
+        .run();
+    }
+  }
 
   return getUser(db, chatId);
 }
@@ -127,7 +148,8 @@ export async function getUser(db, chatId) {
     morning_enabled: Number(user.morning_enabled ?? 1),
     last_morning_sent: user.last_morning_sent ?? null,
     last_reminder_key: user.last_reminder_key ?? null,
-    last_evening_sent: user.last_evening_sent ?? null
+    last_evening_sent: user.last_evening_sent ?? null,
+    bot_fingerprint: user.bot_fingerprint ?? null
   };
 }
 

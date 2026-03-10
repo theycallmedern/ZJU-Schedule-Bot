@@ -40,6 +40,14 @@ export function getAdminId(env) {
   return CONFIG.DEFAULT_ADMIN_ID;
 }
 
+export function getBotInstanceId(env) {
+  const token = String(env?.BOT_TOKEN ?? '').trim();
+  if (!token || !token.includes(':')) {
+    return '';
+  }
+  return token.split(':')[0] || '';
+}
+
 export function escapeHtml(input) {
   return String(input ?? '')
     .replaceAll('&', '&amp;')
@@ -211,33 +219,50 @@ export function parseReminderChoice(text) {
 }
 
 export async function fetchHangzhouWeather() {
-  const url = 'https://api.open-meteo.com/v1/forecast?latitude=30.2741&longitude=120.1551&timezone=Asia%2FShanghai&current=temperature_2m,weather_code';
+  const headers = { 'Accept': 'application/json' };
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json'
+    const primaryUrl = 'https://api.open-meteo.com/v1/forecast?latitude=30.2741&longitude=120.1551&timezone=Asia%2FShanghai&current=temperature_2m,weather_code';
+    const primaryResponse = await fetch(primaryUrl, { headers });
+    if (!primaryResponse.ok) {
+      throw new Error(`weather_primary_status_${primaryResponse.status}`);
+    }
+
+    const primaryPayload = await primaryResponse.json();
+    const current = primaryPayload?.current;
+    if (current && typeof current.temperature_2m === 'number' && typeof current.weather_code === 'number') {
+      return {
+        temperature: Math.round(current.temperature_2m),
+        code: Number(current.weather_code)
+      };
+    }
+
+    throw new Error('weather_primary_payload_invalid');
+  } catch (primaryError) {
+    try {
+      const fallbackUrl = 'https://api.open-meteo.com/v1/forecast?latitude=30.2741&longitude=120.1551&timezone=Asia%2FShanghai&current_weather=true';
+      const fallbackResponse = await fetch(fallbackUrl, { headers });
+      if (!fallbackResponse.ok) {
+        throw new Error(`weather_fallback_status_${fallbackResponse.status}`);
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`weather_api_status_${response.status}`);
+      const fallbackPayload = await fallbackResponse.json();
+      const currentWeather = fallbackPayload?.current_weather;
+      if (!currentWeather || typeof currentWeather.temperature !== 'number' || typeof currentWeather.weathercode !== 'number') {
+        throw new Error('weather_fallback_payload_invalid');
+      }
+
+      return {
+        temperature: Math.round(currentWeather.temperature),
+        code: Number(currentWeather.weathercode)
+      };
+    } catch (fallbackError) {
+      console.error('weather_fetch_error', {
+        primary: String(primaryError),
+        fallback: String(fallbackError)
+      });
+      return null;
     }
-
-    const payload = await response.json();
-    const current = payload?.current;
-
-    if (!current || typeof current.temperature_2m !== 'number' || typeof current.weather_code !== 'number') {
-      throw new Error('weather_payload_invalid');
-    }
-
-    return {
-      temperature: Math.round(current.temperature_2m),
-      code: Number(current.weather_code)
-    };
-  } catch (error) {
-    console.error('weather_fetch_error', error);
-    return null;
   }
 }
 
