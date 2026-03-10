@@ -134,7 +134,8 @@ export function formatMorningMessage(language, payload) {
     const presentation = getWeatherPresentation(weather.code, language);
     const advice = getWeatherAdvice(weather, language);
 
-    lines.push(`${t(language, 'weather.title')} ${weather.temperature}°C, ${presentation.emoji} ${escapeHtml(presentation.text)}`);
+    lines.push(`${t(language, 'weather.title')} ${weather.temperature}°C`);
+    lines.push(`${presentation.emoji} ${escapeHtml(presentation.text)}`);
     lines.push(advice);
     lines.push('');
   }
