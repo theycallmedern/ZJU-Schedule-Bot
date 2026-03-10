@@ -2,8 +2,8 @@ import { CONFIG, normalizeWeekdayValue } from './utils.js';
 import { STATIC_SCHEDULE } from './schedule-data.js';
 
 let schemaReadyPromise;
-const staticScheduleState = buildStaticScheduleState(STATIC_SCHEDULE);
 const VALID_TIME_PATTERN = /^\d{2}:\d{2}$/;
+const staticScheduleState = buildStaticScheduleState(STATIC_SCHEDULE);
 
 const USER_COLUMN_MIGRATIONS = [
   {
