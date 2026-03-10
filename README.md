@@ -67,13 +67,39 @@ Notes:
 - Run only statements for columns that are currently missing.
 - Runtime schema checks are available in `db.js`, but hot path no longer waits for them on every request.
 
-## Faster schedule reads
+## Static timetable source
 
 The bot now reads timetable data from `schedule-data.js`.
 
 - commands and cron jobs use local static schedule data
 - D1 is still used for users, settings, notification state and delivery stats
 - the legacy `schedule` table is no longer required for runtime timetable reads
+
+### How to update schedule
+
+1. Export rows for a group from D1 or prepare them manually.
+2. Add/update that group's lessons in `schedule-data.js`.
+3. Keep fields in this shape:
+   - `group_name`
+   - `day_of_week` (`monday` ... `sunday`)
+   - `lesson_number`
+   - `subject`
+   - `teacher`
+   - `classroom`
+   - `start_time`
+   - `end_time`
+4. Deploy latest Worker version.
+
+### Built-in validation
+
+On load, `db.js` validates `schedule-data.js` and logs:
+- invalid or missing `group_name`
+- invalid weekday values
+- invalid time format
+- `start_time >= end_time`
+- missing subject
+- duplicate lessons
+- supported groups that still have no static schedule
 
 ## Timezone behavior
 

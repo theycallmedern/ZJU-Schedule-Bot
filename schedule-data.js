@@ -1,12 +1,12 @@
-// Optional static schedule source for faster reads in Workers runtime.
-// If a group has lessons here, bot uses this data instead of D1 schedule table.
-// If a group is missing here, bot falls back to D1 automatically.
+// Primary static schedule source for the bot.
+// Timetable commands and cron jobs read lessons from this file.
+// Keep one flat array of lesson objects; db.js validates rows on load.
 //
 // Supported shape:
 // export const STATIC_SCHEDULE = [
 //   {
 //     group_name: '2-7',
-//     day_of_week: 'Monday',
+//     day_of_week: 'monday',
 //     lesson_number: 1,
 //     subject: 'Intermediate Chinese Reading I',
 //     teacher: 'Zhang Xizhi',

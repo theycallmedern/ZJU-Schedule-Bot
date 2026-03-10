@@ -3,6 +3,7 @@ import { STATIC_SCHEDULE } from './schedule-data.js';
 
 let schemaReadyPromise;
 const staticScheduleState = buildStaticScheduleState(STATIC_SCHEDULE);
+const VALID_TIME_PATTERN = /^\d{2}:\d{2}$/;
 
 const USER_COLUMN_MIGRATIONS = [
   {
@@ -483,10 +484,50 @@ export async function getWeekLessonsByGroup(_db, groupName) {
 function buildStaticScheduleState(source) {
   const rows = Array.isArray(source) ? source : [];
   const byGroup = new Map();
+  const knownGroups = new Set(CONFIG.GROUPS);
+  const seenLessons = new Set();
+  const loadedGroups = new Set();
+  const errors = [];
+  const warnings = [];
+  let acceptedLessonsCount = 0;
 
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
     const groupName = normalizeOptionalText(row?.group_name);
+    const weekday = normalizeWeekdayValue(row?.weekday ?? row?.day_of_week);
+    const lessonNumber = normalizeNullableNumber(row?.lesson_number);
+    const startTime = normalizeTime(row?.start_time);
+    const endTime = normalizeTime(row?.end_time);
+    const subject = normalizeOptionalText(row?.subject);
+    const teacher = normalizeOptionalText(row?.teacher) ?? '';
+    const classroom = normalizeOptionalText(row?.classroom) ?? '';
+
     if (!groupName) {
+      errors.push(`row ${index + 1}: missing group_name`);
+      continue;
+    }
+
+    if (!knownGroups.has(groupName)) {
+      errors.push(`row ${index + 1}: unknown group "${groupName}"`);
+      continue;
+    }
+
+    if (!Number.isFinite(weekday)) {
+      errors.push(`row ${index + 1}: invalid weekday for group "${groupName}"`);
+      continue;
+    }
+
+    if (!VALID_TIME_PATTERN.test(startTime) || !VALID_TIME_PATTERN.test(endTime)) {
+      errors.push(`row ${index + 1}: invalid time range for group "${groupName}"`);
+      continue;
+    }
+
+    if (startTime >= endTime) {
+      errors.push(`row ${index + 1}: start_time must be before end_time for group "${groupName}"`);
+      continue;
+    }
+
+    if (!subject) {
+      errors.push(`row ${index + 1}: missing subject for group "${groupName}"`);
       continue;
     }
 
@@ -494,20 +535,53 @@ function buildStaticScheduleState(source) {
       byGroup.set(groupName, []);
     }
 
+    loadedGroups.add(groupName);
+    const duplicateKey = [groupName, weekday, lessonNumber ?? '', startTime, endTime, subject].join('|');
+    if (seenLessons.has(duplicateKey)) {
+      warnings.push(`row ${index + 1}: duplicate lesson "${duplicateKey}"`);
+      continue;
+    }
+    seenLessons.add(duplicateKey);
+
     byGroup.get(groupName).push({
-      lesson_number: normalizeNullableNumber(row.lesson_number),
-      weekday: normalizeWeekdayValue(row.weekday ?? row.day_of_week),
-      start_time: normalizeTime(row.start_time),
-      end_time: normalizeTime(row.end_time),
-      subject: row.subject ?? '',
-      teacher: row.teacher ?? '',
-      classroom: row.classroom ?? ''
+      lesson_number: lessonNumber,
+      weekday,
+      start_time: startTime,
+      end_time: endTime,
+      subject,
+      teacher,
+      classroom
     });
+    acceptedLessonsCount += 1;
   }
 
   for (const lessons of byGroup.values()) {
     lessons.sort(compareLessons);
   }
+
+  const missingGroups = CONFIG.GROUPS.filter((groupName) => !loadedGroups.has(groupName));
+  if (missingGroups.length > 0) {
+    warnings.push(`groups without static schedule: ${missingGroups.join(', ')}`);
+  }
+
+  if (errors.length > 0) {
+    console.error('schedule_data_validation_error', {
+      count: errors.length,
+      messages: errors.slice(0, 10)
+    });
+  }
+
+  if (warnings.length > 0) {
+    console.warn('schedule_data_validation_warning', {
+      count: warnings.length,
+      messages: warnings.slice(0, 10)
+    });
+  }
+
+  console.log('static_schedule_loaded', {
+    groups: byGroup.size,
+    lessons: acceptedLessonsCount
+  });
 
   return { byGroup };
 }
