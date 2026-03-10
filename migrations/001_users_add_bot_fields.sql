@@ -8,3 +8,6 @@ ALTER TABLE users ADD COLUMN last_morning_sent TEXT;
 ALTER TABLE users ADD COLUMN last_reminder_key TEXT;
 ALTER TABLE users ADD COLUMN last_evening_sent TEXT;
 ALTER TABLE users ADD COLUMN bot_fingerprint TEXT;
+ALTER TABLE users ADD COLUMN tg_username TEXT;
+ALTER TABLE users ADD COLUMN tg_first_name TEXT;
+ALTER TABLE users ADD COLUMN tg_last_name TEXT;

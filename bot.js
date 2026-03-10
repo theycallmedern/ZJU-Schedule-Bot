@@ -54,7 +54,7 @@ export async function handleUpdate(update, env) {
   const text = message.text.trim();
   const defaultLang = pickLanguageByTelegram(message.from?.language_code);
   const botInstanceId = getBotInstanceId(env);
-  const ensured = await ensureUserWithMeta(env.DB, chatId, defaultLang, botInstanceId);
+  const ensured = await ensureUserWithMeta(env.DB, chatId, defaultLang, botInstanceId, message.from);
   let user = ensured.user;
   let language = resolveLanguage(user?.language ?? defaultLang);
 

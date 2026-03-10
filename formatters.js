@@ -246,6 +246,33 @@ export function formatAdminStats(language, stats, dailyStats = null, dateKey = '
     }
   }
 
+  lines.push('');
+  lines.push(t(language, 'admin.usersByGroupTitle'));
+  for (const group of stats.byGroupMembers ?? []) {
+    lines.push(`<b>${escapeHtml(group.group_name)}</b>`);
+    if (!group.members.length) {
+      lines.push(`• ${t(language, 'admin.noUsers')}`);
+      continue;
+    }
+
+    for (const member of group.members) {
+      const username = normalizeUsername(member.tg_username);
+      if (username) {
+        lines.push(`• @${escapeHtml(username)} (${member.chat_id})`);
+      } else {
+        const fullName = [member.tg_first_name, member.tg_last_name]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        if (fullName) {
+          lines.push(`• ${escapeHtml(fullName)} (${member.chat_id}, ${t(language, 'admin.noUsername')})`);
+        } else {
+          lines.push(`• ${member.chat_id} (${t(language, 'admin.noUsername')})`);
+        }
+      }
+    }
+  }
+
   if (dailyStats) {
     lines.push('');
     lines.push(t(language, 'admin.dailyTitle', { date: dateKey }));
@@ -264,6 +291,17 @@ export function formatAdminStats(language, stats, dailyStats = null, dateKey = '
   }
 
   return lines.join('\n');
+}
+
+function normalizeUsername(username) {
+  if (!username) {
+    return '';
+  }
+  const value = String(username).trim();
+  if (!value) {
+    return '';
+  }
+  return value.startsWith('@') ? value.slice(1) : value;
 }
 
 export function formatAdminDailyReport(language, dateKey, dailyStats) {

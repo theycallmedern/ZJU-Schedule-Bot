@@ -39,6 +39,18 @@ const USER_COLUMN_MIGRATIONS = [
   {
     name: 'bot_fingerprint',
     sql: 'ALTER TABLE users ADD COLUMN bot_fingerprint TEXT'
+  },
+  {
+    name: 'tg_username',
+    sql: 'ALTER TABLE users ADD COLUMN tg_username TEXT'
+  },
+  {
+    name: 'tg_first_name',
+    sql: 'ALTER TABLE users ADD COLUMN tg_first_name TEXT'
+  },
+  {
+    name: 'tg_last_name',
+    sql: 'ALTER TABLE users ADD COLUMN tg_last_name TEXT'
   }
 ];
 
@@ -107,12 +119,12 @@ async function tableExists(db, tableName) {
   return Boolean(row?.name);
 }
 
-export async function ensureUser(db, chatId, language, botFingerprint = '') {
-  const { user } = await ensureUserWithMeta(db, chatId, language, botFingerprint);
+export async function ensureUser(db, chatId, language, botFingerprint = '', telegramProfile = null) {
+  const { user } = await ensureUserWithMeta(db, chatId, language, botFingerprint, telegramProfile);
   return user;
 }
 
-export async function ensureUserWithMeta(db, chatId, language, botFingerprint = '') {
+export async function ensureUserWithMeta(db, chatId, language, botFingerprint = '', telegramProfile = null) {
   const insertResult = await db
     .prepare('INSERT INTO users (chat_id, language, bot_fingerprint) VALUES (?, ?, ?) ON CONFLICT(chat_id) DO NOTHING')
     .bind(chatId, language, botFingerprint || null)
@@ -134,6 +146,10 @@ export async function ensureUserWithMeta(db, chatId, language, botFingerprint = 
         .bind(botFingerprint, chatId)
         .run();
     }
+  }
+
+  if (telegramProfile) {
+    await updateUserTelegramProfile(db, chatId, telegramProfile);
   }
 
   const user = await getUser(db, chatId);
@@ -159,8 +175,26 @@ export async function getUser(db, chatId) {
     last_morning_sent: user.last_morning_sent ?? null,
     last_reminder_key: user.last_reminder_key ?? null,
     last_evening_sent: user.last_evening_sent ?? null,
-    bot_fingerprint: user.bot_fingerprint ?? null
+    bot_fingerprint: user.bot_fingerprint ?? null,
+    tg_username: user.tg_username ?? null,
+    tg_first_name: user.tg_first_name ?? null,
+    tg_last_name: user.tg_last_name ?? null
   };
+}
+
+export async function updateUserTelegramProfile(db, chatId, profile) {
+  const username = normalizeOptionalText(profile.username);
+  const firstName = normalizeOptionalText(profile.first_name);
+  const lastName = normalizeOptionalText(profile.last_name);
+
+  try {
+    await db
+      .prepare('UPDATE users SET tg_username = ?, tg_first_name = ?, tg_last_name = ? WHERE chat_id = ?')
+      .bind(username, firstName, lastName, chatId)
+      .run();
+  } catch (error) {
+    console.error('update_user_profile_error', { chatId, error: String(error) });
+  }
 }
 
 export async function setUserGroup(db, chatId, groupName) {
@@ -264,6 +298,39 @@ export async function getStats(db) {
   const groups = await db
     .prepare('SELECT group_name, COUNT(*) AS count FROM users WHERE group_name IS NOT NULL GROUP BY group_name ORDER BY group_name ASC')
     .all();
+  let membersRows = [];
+
+  try {
+    const members = await db
+      .prepare(
+        'SELECT group_name, chat_id, tg_username, tg_first_name, tg_last_name FROM users WHERE group_name IS NOT NULL ORDER BY group_name ASC, chat_id ASC'
+      )
+      .all();
+    membersRows = members.results ?? [];
+  } catch (error) {
+    console.error('stats_members_query_error', error);
+    const fallbackMembers = await db
+      .prepare('SELECT group_name, chat_id FROM users WHERE group_name IS NOT NULL ORDER BY group_name ASC, chat_id ASC')
+      .all();
+    membersRows = fallbackMembers.results ?? [];
+  }
+
+  const byGroupMembersMap = new Map();
+  for (const row of membersRows) {
+    const groupName = row.group_name;
+    if (!groupName) {
+      continue;
+    }
+    if (!byGroupMembersMap.has(groupName)) {
+      byGroupMembersMap.set(groupName, []);
+    }
+    byGroupMembersMap.get(groupName).push({
+      chat_id: Number(row.chat_id),
+      tg_username: row.tg_username ?? null,
+      tg_first_name: row.tg_first_name ?? null,
+      tg_last_name: row.tg_last_name ?? null
+    });
+  }
 
   return {
     totalUsers: Number(total?.count ?? 0),
@@ -271,6 +338,10 @@ export async function getStats(db) {
     byGroup: (groups.results ?? []).map((row) => ({
       group_name: row.group_name,
       count: Number(row.count ?? 0)
+    })),
+    byGroupMembers: (groups.results ?? []).map((row) => ({
+      group_name: row.group_name,
+      members: byGroupMembersMap.get(row.group_name) ?? []
     }))
   };
 }
@@ -510,6 +581,14 @@ function pickColumn(columns, candidates) {
 
 function quoteIdent(identifier) {
   return `"${String(identifier).replaceAll('"', '""')}"`;
+}
+
+function normalizeOptionalText(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed : null;
 }
 
 async function insertAnnouncement(db, kind, text) {
