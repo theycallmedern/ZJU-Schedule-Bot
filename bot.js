@@ -597,8 +597,13 @@ function notificationsKeyboard(language) {
 
 function groupKeyboard(language) {
   const menu = getLocale(language).menu;
+  const rows = [];
+  for (let index = 0; index < CONFIG.GROUPS.length; index += 2) {
+    rows.push(CONFIG.GROUPS.slice(index, index + 2));
+  }
+
   return {
-    keyboard: [['2-7', '2-8'], ['5-2', '6-2'], [menu.back]],
+    keyboard: [...rows, [menu.back]],
     resize_keyboard: true
   };
 }
