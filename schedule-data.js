@@ -106,5 +106,95 @@ export const STATIC_SCHEDULE = [
     classroom: '31-109',
     start_time: '08:00',
     end_time: '09:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'monday',
+    lesson_number: 1,
+    subject: 'Chinese Listening II',
+    teacher: 'Chen Linxin',
+    classroom: '31-107',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'monday',
+    lesson_number: 2,
+    subject: 'Chinese Intensive Reading II',
+    teacher: 'Su Mingming',
+    classroom: '31-107',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'tuesday',
+    lesson_number: 1,
+    subject: 'Chinese Intensive Reading II',
+    teacher: 'Su Mingming',
+    classroom: '31-107',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'wednesday',
+    lesson_number: 1,
+    subject: 'Chinese Reading II',
+    teacher: 'Duan Yiwen',
+    classroom: '31-107',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'wednesday',
+    lesson_number: 2,
+    subject: 'Chinese Intensive Reading II',
+    teacher: 'Su Mingming',
+    classroom: '31-107',
+    start_time: '14:45',
+    end_time: '16:15'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'thursday',
+    lesson_number: 1,
+    subject: 'Chinese Listening II',
+    teacher: 'Su Mingming',
+    classroom: '31-107',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'thursday',
+    lesson_number: 2,
+    subject: 'Chinese Speaking II',
+    teacher: 'Chen Linxin',
+    classroom: '31-107',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'friday',
+    lesson_number: 1,
+    subject: 'Chinese Reading II',
+    teacher: 'Duan Yiwen',
+    classroom: '31-107',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-6',
+    day_of_week: 'friday',
+    lesson_number: 2,
+    subject: 'Chinese Intensive Reading II',
+    teacher: 'Su Mingming',
+    classroom: '31-107',
+    start_time: '10:00',
+    end_time: '11:30'
   }
 ];
