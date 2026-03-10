@@ -12,6 +12,7 @@ import {
 } from './db.js';
 import {
   formatAdminStats,
+  formatAdminUsersByGroupMessages,
   formatFullWeek,
   formatHelp,
   formatMySettings,
@@ -452,6 +453,11 @@ async function onStats({ env, chatId, language }) {
   }
 
   await sendMessage(env, chatId, formatAdminStats(language, stats, dailyStats, now.dateKey));
+
+  const membersMessages = formatAdminUsersByGroupMessages(language, stats.byGroupMembers);
+  for (const text of membersMessages) {
+    await sendMessage(env, chatId, text);
+  }
 }
 
 async function onHelp({ env, chatId, language }) {
