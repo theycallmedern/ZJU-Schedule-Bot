@@ -196,5 +196,95 @@ export const STATIC_SCHEDULE = [
     classroom: '31-107',
     start_time: '10:00',
     end_time: '11:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'monday',
+    lesson_number: 1,
+    subject: 'Intermediate Chinese Reading II',
+    teacher: 'Zhang Xizhi',
+    classroom: '31-105',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'monday',
+    lesson_number: 2,
+    subject: 'Intermediate Chinese Speaking II',
+    teacher: 'Wei Wenxu',
+    classroom: '31-105',
+    start_time: '14:45',
+    end_time: '16:15'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'tuesday',
+    lesson_number: 1,
+    subject: 'Intermediate Chinese Reading II',
+    teacher: 'Zhang Xizhi',
+    classroom: '31-105',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'wednesday',
+    lesson_number: 1,
+    subject: 'Intermediate Chinese Listening II',
+    teacher: 'Wang Yiwei',
+    classroom: '31-107',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'wednesday',
+    lesson_number: 2,
+    subject: 'Intermediate Chinese Reading II',
+    teacher: 'Zhang Xizhi',
+    classroom: '31-107',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'thursday',
+    lesson_number: 1,
+    subject: 'Intermediate Chinese Speaking II',
+    teacher: 'Wei Wenxu',
+    classroom: '31-105',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'thursday',
+    lesson_number: 2,
+    subject: 'Intermediate Chinese Reading II',
+    teacher: 'Zhang Xizhi',
+    classroom: '31-105',
+    start_time: '14:45',
+    end_time: '16:15'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'friday',
+    lesson_number: 1,
+    subject: 'Intermediate Chinese Listening II',
+    teacher: 'Wang Yiwei',
+    classroom: '31-105',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-7',
+    day_of_week: 'friday',
+    lesson_number: 2,
+    subject: 'Intermediate Chinese Reading II',
+    teacher: 'Zhang Xizhi',
+    classroom: '31-105',
+    start_time: '10:00',
+    end_time: '11:30'
   }
 ];
