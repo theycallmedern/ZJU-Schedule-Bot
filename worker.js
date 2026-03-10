@@ -11,6 +11,10 @@ export default {
       }
 
       const url = new URL(request.url);
+      if (request.method === 'GET' && url.pathname === '/') {
+        return new Response('Schedule Helper Bot is running', { status: 200 });
+      }
+
       if (request.method === 'GET' && url.pathname === '/health') {
         return new Response('ok', { status: 200 });
       }
