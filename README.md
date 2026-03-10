@@ -22,6 +22,7 @@ No npm libraries are used.
 - `worker.js` - Worker entrypoint (`fetch`, `scheduled`)
 - `bot.js` - Telegram command/text router
 - `db.js` - D1 data access + schema checks/migrations
+- `schedule-data.js` - optional static schedule source for faster timetable reads
 - `formatters.js` - UI formatting for readable bot messages
 - `translations.js` - RU/EN strings and labels
 - `utils.js` - timezone/date/status/weather helpers
@@ -64,7 +65,15 @@ ALTER TABLE users ADD COLUMN last_evening_sent TEXT;
 
 Notes:
 - Run only statements for columns that are currently missing.
-- The worker also contains runtime schema checks in `db.js`.
+- Runtime schema checks are available in `db.js`, but hot path no longer waits for them on every request.
+
+## Faster schedule reads
+
+If you want the fastest possible timetable responses, fill `schedule-data.js`.
+
+- If a group has lessons in `schedule-data.js`, bot reads that schedule from local static data.
+- If a group is missing there, bot falls back to D1 `schedule` automatically.
+- This lets you migrate groups gradually without breaking existing behavior.
 
 ## Timezone behavior
 

@@ -1,9 +1,11 @@
 import { CONFIG, normalizeWeekdayValue } from './utils.js';
+import { STATIC_SCHEDULE } from './schedule-data.js';
 
 let schemaReadyPromise;
 let scheduleColumnsPromise;
 const scheduleCache = new Map();
 const SCHEDULE_CACHE_TTL_MS = 60 * 1000;
+const staticScheduleState = buildStaticScheduleState(STATIC_SCHEDULE);
 
 const USER_COLUMN_MIGRATIONS = [
   {
@@ -486,6 +488,11 @@ export async function markAdminDailyReport(db, dateKey) {
 }
 
 export async function getLessonsByGroupAndWeekday(db, groupName, weekday) {
+  const staticLessons = getStaticLessonsByGroupAndWeekday(groupName, weekday);
+  if (staticLessons) {
+    return staticLessons;
+  }
+
   const map = await getScheduleColumnMap(db);
   if (!map) {
     return [];
@@ -509,6 +516,11 @@ export async function getLessonsByGroupAndWeekday(db, groupName, weekday) {
 }
 
 export async function getWeekLessonsByGroup(db, groupName) {
+  const staticLessons = getStaticWeekLessonsByGroup(groupName);
+  if (staticLessons) {
+    return staticLessons;
+  }
+
   const map = await getScheduleColumnMap(db);
   if (!map) {
     return [];
@@ -524,21 +536,7 @@ export async function getWeekLessonsByGroup(db, groupName) {
   const { results } = await db.prepare(sql).bind(groupName).all();
 
   const lessons = normalizeLessons(results ?? []);
-  lessons.sort((a, b) => {
-    const aWeekday = a.weekday ?? 8;
-    const bWeekday = b.weekday ?? 8;
-    if (aWeekday !== bWeekday) {
-      return aWeekday - bWeekday;
-    }
-
-    const aNumber = Number.isFinite(a.lesson_number) ? a.lesson_number : 999;
-    const bNumber = Number.isFinite(b.lesson_number) ? b.lesson_number : 999;
-    if (aNumber !== bNumber) {
-      return aNumber - bNumber;
-    }
-
-    return String(a.start_time).localeCompare(String(b.start_time));
-  });
+  lessons.sort(compareLessons);
 
   writeScheduleCache(cacheKey, lessons);
   return cloneLessons(lessons);
@@ -601,6 +599,56 @@ function buildScheduleSelectSql(map, whereClause = '', orderByClause = '') {
   `;
 }
 
+function buildStaticScheduleState(source) {
+  const rows = Array.isArray(source) ? source : [];
+  const byGroup = new Map();
+
+  for (const row of rows) {
+    const groupName = normalizeOptionalText(row?.group_name);
+    if (!groupName) {
+      continue;
+    }
+
+    if (!byGroup.has(groupName)) {
+      byGroup.set(groupName, []);
+    }
+
+    byGroup.get(groupName).push({
+      lesson_number: normalizeNullableNumber(row.lesson_number),
+      weekday: normalizeWeekdayValue(row.weekday ?? row.day_of_week),
+      start_time: normalizeTime(row.start_time),
+      end_time: normalizeTime(row.end_time),
+      subject: row.subject ?? '',
+      teacher: row.teacher ?? '',
+      classroom: row.classroom ?? ''
+    });
+  }
+
+  for (const lessons of byGroup.values()) {
+    lessons.sort(compareLessons);
+  }
+
+  return { byGroup };
+}
+
+function getStaticLessonsByGroupAndWeekday(groupName, weekday) {
+  const lessons = staticScheduleState.byGroup.get(groupName);
+  if (!lessons) {
+    return null;
+  }
+
+  return cloneLessons(lessons.filter((lesson) => lesson.weekday === weekday));
+}
+
+function getStaticWeekLessonsByGroup(groupName) {
+  const lessons = staticScheduleState.byGroup.get(groupName);
+  if (!lessons) {
+    return null;
+  }
+
+  return cloneLessons(lessons);
+}
+
 function readScheduleCache(key) {
   const entry = scheduleCache.get(key);
   if (!entry) {
@@ -636,6 +684,22 @@ function normalizeLessons(rows) {
     teacher: row.teacher ?? '',
     classroom: row.classroom ?? ''
   }));
+}
+
+function compareLessons(a, b) {
+  const aWeekday = a.weekday ?? 8;
+  const bWeekday = b.weekday ?? 8;
+  if (aWeekday !== bWeekday) {
+    return aWeekday - bWeekday;
+  }
+
+  const aNumber = Number.isFinite(a.lesson_number) ? a.lesson_number : 999;
+  const bNumber = Number.isFinite(b.lesson_number) ? b.lesson_number : 999;
+  if (aNumber !== bNumber) {
+    return aNumber - bNumber;
+  }
+
+  return String(a.start_time).localeCompare(String(b.start_time));
 }
 
 function normalizeNullableNumber(value) {
