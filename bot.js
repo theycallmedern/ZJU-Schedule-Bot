@@ -66,7 +66,9 @@ export async function handleUpdate(update, env) {
   let language = resolveLanguage(user?.language ?? defaultLang);
 
   if (ensured.isNewUser) {
-    await notifyAdminAboutNewUser(env, message);
+    notifyAdminAboutNewUser(env, message).catch((error) => {
+      console.error('new_user_admin_notify_error', { chatId, error: String(error) });
+    });
   }
 
   if (text.startsWith('/')) {
@@ -77,7 +79,10 @@ export async function handleUpdate(update, env) {
   if (CONFIG.GROUPS.includes(text)) {
     const wasSelected = Boolean(user.group_name);
     await setUserGroup(env.DB, chatId, text);
-    user = await getUser(env.DB, chatId);
+    user = {
+      ...user,
+      group_name: text
+    };
     language = resolveLanguage(user.language);
 
     const key = wasSelected ? 'groups.changed' : 'groups.saved';
@@ -124,14 +129,20 @@ export async function handleUpdate(update, env) {
       return;
     case 'langRu': {
       await setUserLanguage(env.DB, chatId, 'ru');
-      user = await getUser(env.DB, chatId);
+      user = {
+        ...user,
+        language: 'ru'
+      };
       language = 'ru';
       await sendSettingsText(env, chatId, language, t(language, 'settings.languageUpdated', { language: 'Русский' }));
       return;
     }
     case 'langEn': {
       await setUserLanguage(env.DB, chatId, 'en');
-      user = await getUser(env.DB, chatId);
+      user = {
+        ...user,
+        language: 'en'
+      };
       language = 'en';
       await sendSettingsText(env, chatId, language, t(language, 'settings.languageUpdated', { language: 'English' }));
       return;
@@ -140,7 +151,11 @@ export async function handleUpdate(update, env) {
       const choice = parseReminderChoice(text);
       if (choice) {
         await setUserNotifications(env.DB, chatId, choice.enabled, choice.minutes);
-        user = await getUser(env.DB, chatId);
+        user = {
+          ...user,
+          notifications_enabled: choice.enabled,
+          reminder_minutes: choice.minutes
+        };
         language = resolveLanguage(user.language);
 
         const value = choice.enabled
@@ -470,9 +485,12 @@ async function onHelp({ env, chatId, language }) {
 async function onMorningToggle({ env, chatId, user, language }) {
   const nextValue = Number(user?.morning_enabled) === 1 ? 0 : 1;
   await setUserMorningEnabled(env.DB, chatId, nextValue);
-  const freshUser = await getUser(env.DB, chatId);
-  const freshLanguage = resolveLanguage(freshUser?.language ?? language);
-  const value = Number(freshUser?.morning_enabled) === 1
+  const freshUser = {
+    ...user,
+    morning_enabled: nextValue
+  };
+  const freshLanguage = resolveLanguage(freshUser.language ?? language);
+  const value = Number(freshUser.morning_enabled) === 1
     ? t(freshLanguage, 'settings.enabled')
     : t(freshLanguage, 'settings.disabled');
 

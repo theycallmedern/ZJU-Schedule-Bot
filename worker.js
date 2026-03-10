@@ -1,11 +1,9 @@
 import { handleUpdate } from './bot.js';
 import { handleScheduled } from './cron.js';
-import { ensureSchema } from './db.js';
 
 export default {
   async fetch(request, env, ctx) {
     try {
-      await ensureSchema(env.DB);
       if (!env.BOT_TOKEN) {
         console.error('missing_bot_token');
       }
@@ -58,7 +56,6 @@ export default {
 
   async scheduled(event, env, ctx) {
     try {
-      await ensureSchema(env.DB);
       if (!env.BOT_TOKEN) {
         console.error('missing_bot_token');
       }

@@ -2,6 +2,8 @@ import { CONFIG, normalizeWeekdayValue } from './utils.js';
 
 let schemaReadyPromise;
 let scheduleColumnsPromise;
+const scheduleCache = new Map();
+const SCHEDULE_CACHE_TTL_MS = 60 * 1000;
 
 const USER_COLUMN_MIGRATIONS = [
   {
@@ -489,19 +491,33 @@ export async function getLessonsByGroupAndWeekday(db, groupName, weekday) {
     return [];
   }
 
+  const cacheKey = `day:${groupName}:${weekday}`;
+  const cached = readScheduleCache(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const sql = buildScheduleSelectSql(
     map,
     `WHERE ${map.groupExpr} = ?`,
     `ORDER BY COALESCE(${map.lessonNumberExpr}, 999), ${map.startExpr}`
   );
   const { results } = await db.prepare(sql).bind(groupName).all();
-  return normalizeLessons(results ?? []).filter((lesson) => lesson.weekday === weekday);
+  const lessons = normalizeLessons(results ?? []).filter((lesson) => lesson.weekday === weekday);
+  writeScheduleCache(cacheKey, lessons);
+  return cloneLessons(lessons);
 }
 
 export async function getWeekLessonsByGroup(db, groupName) {
   const map = await getScheduleColumnMap(db);
   if (!map) {
     return [];
+  }
+
+  const cacheKey = `week:${groupName}`;
+  const cached = readScheduleCache(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const sql = buildScheduleSelectSql(map, `WHERE ${map.groupExpr} = ?`);
@@ -524,7 +540,8 @@ export async function getWeekLessonsByGroup(db, groupName) {
     return String(a.start_time).localeCompare(String(b.start_time));
   });
 
-  return lessons;
+  writeScheduleCache(cacheKey, lessons);
+  return cloneLessons(lessons);
 }
 
 async function getScheduleColumnMap(db) {
@@ -582,6 +599,31 @@ function buildScheduleSelectSql(map, whereClause = '', orderByClause = '') {
     ${whereClause}
     ${orderByClause}
   `;
+}
+
+function readScheduleCache(key) {
+  const entry = scheduleCache.get(key);
+  if (!entry) {
+    return null;
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    scheduleCache.delete(key);
+    return null;
+  }
+
+  return cloneLessons(entry.lessons);
+}
+
+function writeScheduleCache(key, lessons) {
+  scheduleCache.set(key, {
+    expiresAt: Date.now() + SCHEDULE_CACHE_TTL_MS,
+    lessons: cloneLessons(lessons)
+  });
+}
+
+function cloneLessons(lessons) {
+  return (Array.isArray(lessons) ? lessons : []).map((lesson) => ({ ...lesson }));
 }
 
 function normalizeLessons(rows) {
