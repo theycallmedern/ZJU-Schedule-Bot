@@ -83,6 +83,11 @@ async function migrateSchema(db) {
 
   await runSqlSafe(db, 'CREATE INDEX IF NOT EXISTS idx_users_group_name ON users(group_name)');
   await runSqlSafe(db, 'CREATE INDEX IF NOT EXISTS idx_users_notifications_enabled ON users(notifications_enabled)');
+  await runSqlSafe(
+    db,
+    'CREATE TABLE IF NOT EXISTS delivery_stats (date_key TEXT NOT NULL, kind TEXT NOT NULL, sent_count INTEGER NOT NULL DEFAULT 0, failed_count INTEGER NOT NULL DEFAULT 0, updated_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (date_key, kind))'
+  );
+  await runSqlSafe(db, 'CREATE INDEX IF NOT EXISTS idx_delivery_stats_date_key ON delivery_stats(date_key)');
 
   const scheduleColumns = await getTableColumns(db, 'schedule');
   const scheduleColumnList = [...scheduleColumns];
@@ -349,17 +354,33 @@ export async function getStats(db) {
 export async function logCronDelivery(db, dateKey, kind, sent, failed) {
   const sentValue = Number(sent ?? 0);
   const failedValue = Number(failed ?? 0);
+  if (sentValue <= 0 && failedValue <= 0) {
+    return;
+  }
 
   try {
-    if (sentValue > 0) {
-      await insertAnnouncement(db, `cron:${dateKey}:${kind}:sent`, String(sentValue));
-    }
-
-    if (failedValue > 0) {
-      await insertAnnouncement(db, `cron:${dateKey}:${kind}:failed`, String(failedValue));
-    }
+    await db
+      .prepare(
+        'INSERT INTO delivery_stats (date_key, kind, sent_count, failed_count) VALUES (?, ?, ?, ?) ON CONFLICT(date_key, kind) DO UPDATE SET sent_count = delivery_stats.sent_count + excluded.sent_count, failed_count = delivery_stats.failed_count + excluded.failed_count, updated_at = CURRENT_TIMESTAMP'
+      )
+      .bind(dateKey, kind, Math.max(0, sentValue), Math.max(0, failedValue))
+      .run();
   } catch (error) {
     console.error('cron_delivery_log_error', { dateKey, kind, error: String(error) });
+    try {
+      if (sentValue > 0) {
+        await insertAnnouncement(db, `cron:${dateKey}:${kind}:sent`, String(sentValue));
+      }
+      if (failedValue > 0) {
+        await insertAnnouncement(db, `cron:${dateKey}:${kind}:failed`, String(failedValue));
+      }
+    } catch (fallbackError) {
+      console.error('cron_delivery_log_fallback_error', {
+        dateKey,
+        kind,
+        error: String(fallbackError)
+      });
+    }
   }
 }
 
@@ -369,6 +390,30 @@ export async function getDailyCronDeliveryStats(db, dateKey) {
     reminder: { sent: 0, failed: 0 },
     evening: { sent: 0, failed: 0 }
   };
+
+  let hasDeliveryStatsRows = false;
+  try {
+    const response = await db
+      .prepare('SELECT kind, sent_count, failed_count FROM delivery_stats WHERE date_key = ?')
+      .bind(dateKey)
+      .all();
+    const rows = response.results ?? [];
+    for (const row of rows) {
+      const rowKind = String(row.kind ?? '');
+      if (!(rowKind in result)) {
+        continue;
+      }
+      result[rowKind].sent += Number(row.sent_count ?? 0) || 0;
+      result[rowKind].failed += Number(row.failed_count ?? 0) || 0;
+      hasDeliveryStatsRows = true;
+    }
+  } catch (error) {
+    console.error('cron_delivery_stats_table_error', { dateKey, error: String(error) });
+  }
+
+  if (hasDeliveryStatsRows) {
+    return result;
+  }
 
   let results = [];
   try {
@@ -388,7 +433,6 @@ export async function getDailyCronDeliveryStats(db, dateKey) {
     if (parts.length !== 4) {
       continue;
     }
-
     const [, rowDateKey, rowKind, rowMetric] = parts;
     if (rowDateKey !== dateKey || !(rowKind in result) || (rowMetric !== 'sent' && rowMetric !== 'failed')) {
       continue;
