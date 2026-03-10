@@ -932,8 +932,8 @@ function favoritesViewKeyboard(language, favoriteGroups = []) {
   const rows = [];
 
   for (const groupName of favoriteGroups) {
-    rows.push([`📅 ${groupName}`, `📆 ${groupName}`]);
-    rows.push([`📖 ${groupName}`]);
+    rows.push([`${getLocale(language).menu.today} ${groupName}`, `${getLocale(language).menu.tomorrow} ${groupName}`]);
+    rows.push([`${getLocale(language).menu.fullWeek} ${groupName}`]);
   }
 
   return {
@@ -1012,10 +1012,32 @@ function parseFavoriteGroupChoice(text) {
 }
 
 function parseFavoriteViewChoice(text) {
-  const matched = String(text ?? '').trim().match(/^(📅|📆|📖)\s+(.+)$/);
+  const value = String(text ?? '').trim();
+  const matched = value.match(/^(📅|📆|📖)\s+(.+)$/);
   const icon = matched?.[1] ?? '';
   const groupName = matched?.[2]?.trim() ?? '';
   if (!CONFIG.GROUPS.includes(groupName)) {
+    for (const language of SUPPORTED_LANGUAGES) {
+      const menu = getLocale(language).menu;
+      if (value.startsWith(`${menu.today} `)) {
+        const candidate = value.slice(`${menu.today} `.length).trim();
+        return CONFIG.GROUPS.includes(candidate)
+          ? { groupName: candidate, viewType: 'today' }
+          : null;
+      }
+      if (value.startsWith(`${menu.tomorrow} `)) {
+        const candidate = value.slice(`${menu.tomorrow} `.length).trim();
+        return CONFIG.GROUPS.includes(candidate)
+          ? { groupName: candidate, viewType: 'tomorrow' }
+          : null;
+      }
+      if (value.startsWith(`${menu.fullWeek} `)) {
+        const candidate = value.slice(`${menu.fullWeek} `.length).trim();
+        return CONFIG.GROUPS.includes(candidate)
+          ? { groupName: candidate, viewType: 'week' }
+          : null;
+      }
+    }
     return null;
   }
 
