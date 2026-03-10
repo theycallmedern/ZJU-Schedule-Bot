@@ -269,12 +269,16 @@ export async function logCronDelivery(db, dateKey, kind, sent, failed) {
   const sentValue = Number(sent ?? 0);
   const failedValue = Number(failed ?? 0);
 
-  if (sentValue > 0) {
-    await insertAnnouncement(db, `cron:${dateKey}:${kind}:sent`, String(sentValue));
-  }
+  try {
+    if (sentValue > 0) {
+      await insertAnnouncement(db, `cron:${dateKey}:${kind}:sent`, String(sentValue));
+    }
 
-  if (failedValue > 0) {
-    await insertAnnouncement(db, `cron:${dateKey}:${kind}:failed`, String(failedValue));
+    if (failedValue > 0) {
+      await insertAnnouncement(db, `cron:${dateKey}:${kind}:failed`, String(failedValue));
+    }
+  } catch (error) {
+    console.error('cron_delivery_log_error', { dateKey, kind, error: String(error) });
   }
 }
 
@@ -285,12 +289,19 @@ export async function getDailyCronDeliveryStats(db, dateKey) {
     evening: { sent: 0, failed: 0 }
   };
 
-  const { results } = await db
-    .prepare('SELECT kind, text FROM announcements WHERE kind LIKE ?')
-    .bind(`cron:${dateKey}:%`)
-    .all();
+  let results = [];
+  try {
+    const response = await db
+      .prepare('SELECT kind, text FROM announcements WHERE kind LIKE ?')
+      .bind(`cron:${dateKey}:%`)
+      .all();
+    results = response.results ?? [];
+  } catch (error) {
+    console.error('cron_delivery_stats_error', { dateKey, error: String(error) });
+    return result;
+  }
 
-  for (const row of results ?? []) {
+  for (const row of results) {
     const kind = String(row.kind ?? '');
     const parts = kind.split(':');
     if (parts.length !== 4) {
@@ -312,16 +323,25 @@ export async function getDailyCronDeliveryStats(db, dateKey) {
 }
 
 export async function hasAdminDailyReport(db, dateKey) {
-  const row = await db
-    .prepare('SELECT id FROM announcements WHERE kind = ? LIMIT 1')
-    .bind(`cron_report_sent:${dateKey}`)
-    .first();
+  try {
+    const row = await db
+      .prepare('SELECT id FROM announcements WHERE kind = ? LIMIT 1')
+      .bind(`cron_report_sent:${dateKey}`)
+      .first();
 
-  return Boolean(row?.id);
+    return Boolean(row?.id);
+  } catch (error) {
+    console.error('admin_daily_report_check_error', { dateKey, error: String(error) });
+    return false;
+  }
 }
 
 export async function markAdminDailyReport(db, dateKey) {
-  await insertAnnouncement(db, `cron_report_sent:${dateKey}`, '1');
+  try {
+    await insertAnnouncement(db, `cron_report_sent:${dateKey}`, '1');
+  } catch (error) {
+    console.error('admin_daily_report_mark_error', { dateKey, error: String(error) });
+  }
 }
 
 export async function getLessonsByGroupAndWeekday(db, groupName, weekday) {

@@ -203,6 +203,57 @@ async function handleCommand({ text, chatId, env, user, language }) {
     return;
   }
 
+  if (command === '/tomorrow') {
+    await onTomorrow({ env, chatId, user, language });
+    return;
+  }
+
+  if (command === '/week' || command === '/fullweek') {
+    await onFullWeek({ env, chatId, user, language });
+    return;
+  }
+
+  if (command === '/next' || command === '/nextclass') {
+    await onNextClass({ env, chatId, user, language });
+    return;
+  }
+
+  if (command === '/settings') {
+    await sendMessage(env, chatId, formatSettingsSummary(language, user), {
+      reply_markup: settingsKeyboard(language)
+    });
+    return;
+  }
+
+  if (command === '/language') {
+    await sendMessage(env, chatId, t(language, 'common.pickLanguage'), {
+      reply_markup: languageKeyboard(language)
+    });
+    return;
+  }
+
+  if (command === '/notifications') {
+    await sendMessage(env, chatId, t(language, 'common.pickNotifications'), {
+      reply_markup: notificationsKeyboard(language)
+    });
+    return;
+  }
+
+  if (command === '/mysettings') {
+    const freshUser = await getUser(env.DB, chatId);
+    await sendMessage(env, chatId, formatMySettings(language, freshUser ?? user), {
+      reply_markup: settingsKeyboard(language)
+    });
+    return;
+  }
+
+  if (command === '/changegroup') {
+    await sendMessage(env, chatId, t(language, 'common.chooseGroup'), {
+      reply_markup: groupKeyboard(language)
+    });
+    return;
+  }
+
   if (command === '/stats') {
     await onStats({ env, chatId, language });
     return;
@@ -380,7 +431,13 @@ async function onStats({ env, chatId, language }) {
 
   const now = getNowContext(new Date(), CONFIG.TIMEZONE);
   const stats = await getStats(env.DB);
-  const dailyStats = await getDailyCronDeliveryStats(env.DB, now.dateKey);
+  let dailyStats = null;
+  try {
+    dailyStats = await getDailyCronDeliveryStats(env.DB, now.dateKey);
+  } catch (error) {
+    console.error('stats_daily_fetch_error', error);
+  }
+
   await sendMessage(env, chatId, formatAdminStats(language, stats, dailyStats, now.dateKey));
 }
 
