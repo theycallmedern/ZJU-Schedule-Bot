@@ -734,12 +734,12 @@ function getReminderMuteState(language, user) {
 
 function formatGroupMembersCount(language, count) {
   if (language === 'ru') {
-    return `${count} ${formatRussianPeople(count)} в группе`;
+    return `${formatRussianPeople(count)} в группе`;
   }
   if (language === 'zh') {
-    return `组内 ${count} 人`;
+    return '人';
   }
-  return `${count} users in group`;
+  return 'users in group';
 }
 
 function formatGroupLabel(groupName) {
