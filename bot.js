@@ -436,6 +436,12 @@ async function handleCallbackQuery(query, env) {
       return;
     }
 
+    if (data === 'settings:close') {
+      await sendMainMenu(env, chatId, language, t(language, 'common.mainMenu'));
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
     if (data === 'settings:language') {
       await renderInlineLanguageMenu(env, chatId, messageId, language);
       await answerCallbackQuery(env, query.id);
@@ -1520,7 +1526,7 @@ function inlineSettingsKeyboard(language) {
         { text: menu.changeGroup, callback_data: 'settings:change-group' }
       ],
       [
-        { text: menu.back, callback_data: 'settings:back' }
+        { text: menu.back, callback_data: 'settings:close' }
       ]
     ]
   };
