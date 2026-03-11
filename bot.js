@@ -685,7 +685,13 @@ async function handleCallbackQuery(query, env) {
     }
 
     if (data === 'settings:my-settings') {
-      await sendSettingsDetails(env, chatId, language, user);
+      await renderInlineSettingsDetails(env, chatId, messageId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:my-settings:back') {
+      await renderInlineSettingsMenu(env, chatId, messageId, language, user);
       await answerCallbackQuery(env, query.id);
       return;
     }
@@ -1401,6 +1407,12 @@ async function sendSettingsDetails(env, chatId, language, user) {
   await sendSettingsText(env, chatId, language, formatMySettings(language, user));
 }
 
+async function renderInlineSettingsDetails(env, chatId, messageId, language, user) {
+  await editOrSendMessage(env, chatId, messageId, formatMySettings(language, user), {
+    reply_markup: inlineMySettingsKeyboard(language)
+  });
+}
+
 async function renderInlineSettingsMenu(env, chatId, messageId, language, user, options = {}) {
   const prefixText = String(options.prefixText ?? '').trim();
   const body = formatSettingsSummary(language, user);
@@ -1805,6 +1817,12 @@ function inlineSettingsKeyboard(language) {
         { text: menu.back, callback_data: 'settings:close' }
       ]
     ]
+  };
+}
+
+function inlineMySettingsKeyboard(language) {
+  return {
+    inline_keyboard: [[{ text: getLocale(language).menu.back, callback_data: 'settings:my-settings:back' }]]
   };
 }
 
