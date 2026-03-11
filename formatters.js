@@ -13,10 +13,13 @@ import {
 
 const NUMBER_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 
-export function formatScheduleForToday(language, lessons, nowMinutes) {
+export function formatScheduleForToday(language, lessons, nowMinutes, date = new Date()) {
   const title = t(language, 'schedule.todayTitle');
+  const dateLine = t(language, 'schedule.todayDateLine', {
+    date: escapeHtml(formatLocalizedPreviewDate(language, date))
+  });
   if (!lessons.length) {
-    return `${title}\n\n${t(language, 'schedule.noLessonsToday')}`;
+    return `${title}\n\n${dateLine}\n\n${t(language, 'schedule.noLessonsToday')}`;
   }
 
   const blocks = lessons.map((lesson, index) => {
@@ -25,21 +28,24 @@ export function formatScheduleForToday(language, lessons, nowMinutes) {
     return formatLessonBlock(lesson, index, statusLine);
   });
 
-  return `${title}\n\n${blocks.join('\n\n')}`;
+  return `${title}\n\n${dateLine}\n\n${blocks.join('\n\n')}`;
 }
 
 export function prependQuickGroupHeader(language, groupName, body) {
   return `${t(language, 'schedule.quickGroupHeader', { group: escapeHtml(groupName) })}\n\n${body}`;
 }
 
-export function formatScheduleForTomorrow(language, lessons) {
+export function formatScheduleForTomorrow(language, lessons, date = new Date()) {
   const title = t(language, 'schedule.tomorrowTitle');
+  const dateLine = t(language, 'schedule.tomorrowDateLine', {
+    date: escapeHtml(formatLocalizedPreviewDate(language, date))
+  });
   if (!lessons.length) {
-    return `${title}\n\n${t(language, 'schedule.noLessonsTomorrow')}`;
+    return `${title}\n\n${dateLine}\n\n${t(language, 'schedule.noLessonsTomorrow')}`;
   }
 
   const blocks = lessons.map((lesson, index) => formatLessonBlock(lesson, index, ''));
-  return `${title}\n\n${blocks.join('\n\n')}`;
+  return `${title}\n\n${dateLine}\n\n${blocks.join('\n\n')}`;
 }
 
 export function formatFullWeek(language, lessons) {
@@ -260,10 +266,19 @@ export function formatMorningMessage(language, payload) {
 }
 
 export function formatEveningPreview(language, payload) {
-  const { lessons } = payload;
+  const { lessons, date } = payload;
   const lines = [t(language, 'evening.title'), ''];
 
+  if (date instanceof Date && !Number.isNaN(date.getTime())) {
+    lines.push(t(language, 'evening.dateLine', {
+      date: escapeHtml(formatLocalizedPreviewDate(language, date))
+    }));
+  }
+
   if (!lessons.length) {
+    if (lines.at(-1) !== '') {
+      lines.push('');
+    }
     lines.push(t(language, 'evening.noLessons'));
     lines.push('');
     lines.push(t(language, 'evening.noLessonsHint'));
@@ -280,9 +295,6 @@ export function formatEveningPreview(language, payload) {
     }));
   }
   lines.push('');
-  lines.push(t(language, 'evening.lessonsTitle'));
-  lines.push('');
-
   lines.push(formatDigestLessonBlocks(lessons));
 
   return lines.join('\n');
@@ -695,6 +707,16 @@ function getReminderMuteState(language, user) {
   return user?.reminder_mute_until_date === now.dateKey
     ? t(language, 'settings.mutedToday')
     : t(language, 'settings.notMuted');
+}
+
+function formatLocalizedPreviewDate(language, date) {
+  const locale = language === 'ru' ? 'ru-RU' : 'en-US';
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: CONFIG.TIMEZONE,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  }).format(date);
 }
 
 function numberEmoji(index) {

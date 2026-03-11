@@ -223,7 +223,10 @@ export async function runEveningPreviewCron(env) {
       lessonsByGroup.set(cacheKey, lessons);
     }
 
-    const text = formatEveningPreview(user.language, { lessons });
+    const text = formatEveningPreview(user.language, {
+      lessons,
+      date: tomorrow
+    });
     try {
       await sendMessage(env, user.chat_id, text, {
         reply_markup: mainMenuKeyboard(user.language)

@@ -51,6 +51,8 @@ const TRANSLATIONS = {
     schedule: {
       todayTitle: '📅 <b>Today</b>',
       tomorrowTitle: '📆 <b>Tomorrow</b>',
+      todayDateLine: '📆 Today, {date}',
+      tomorrowDateLine: '📆 Tomorrow, {date}',
       weekTitle: '📖 <b>Full week</b>',
       noLessonsToday: '🎉 Today there are no classes.',
       noLessonsTomorrow: '🎉 Tomorrow there are no classes.',
@@ -175,6 +177,7 @@ const TRANSLATIONS = {
     },
     evening: {
       title: '🌙 <b>Tomorrow preview</b>',
+      dateLine: '📆 Tomorrow, {date}',
       noLessons: '🎉 Tomorrow there are no classes.',
       noLessonsHint: 'Enjoy a calmer evening.',
       summary: '📚 Classes tomorrow: <b>{count}</b>',
@@ -184,7 +187,7 @@ const TRANSLATIONS = {
     help: {
       title: '❓ <b>Help</b>',
       body: 'This bot helps you check your class schedule, follow the next lesson, manage reminders, save favorite groups, keep lesson notes and receive morning updates.\n\nButtons:\n📅 Today - schedule for today\n📆 Tomorrow - schedule for tomorrow\n📖 Full week - full weekly schedule\n📚 Next class - current or upcoming lesson\n⭐ Favorites - quick view for favorite groups\n⚙️ Settings - language, reminders, favorites and personal options\n\nSettings buttons:\n🌐 Language - switch RU / EN\n🔔 Notifications - choose reminder time\n🔕 Mute today - pause reminders until tomorrow\n⭐ Manage favorites - pin up to 2 groups\n📝 Notes - save a note for a specific weekday and lesson\n🕗 Morning time - choose 07:00 / 07:30 / 08:00\n🧾 My settings - view current settings\n🔄 Change group - change your main group\n🌅 Daily updates - turn morning messages on or off\n\nCommands:\n/start - start bot\n/help - show this help\n/today - today schedule\n/today 2-8 - quick schedule for any supported group\n/tomorrow - tomorrow schedule\n/tomorrow 2-8 - quick tomorrow schedule for any supported group\n/week - full week\n/week 2-8 - quick full week for any supported group\n/next - next or current class\n/settings - open settings\n/mysettings - show your settings\n/changegroup - choose group\n/favorites - manage favorite groups\n/morning - toggle daily updates\n/morningtime - choose morning message time\n/mutetoday - mute reminders until tomorrow',
-      admin: '\n\nAdmin:\n/stats - bot stats\n/user 123456789 - user card\n/inactive - list inactive users\n/cleanupinactive - remove inactive users from database\n/broadcast text - send to all users\n/broadcastgroup 2-7 text - send to one group'
+      admin: '\n\nAdmin:\n/stats - bot stats\n/user 123456789 - user card\n/inactive - list inactive users\n/cleanupinactive - remove inactive users from database\n/morningtest - send morning message to admin\n/eveningtest - send evening preview to admin\n/broadcast text - send to all users\n/broadcastgroup 2-7 text - send to one group'
     },
     weekdays: {
       1: 'Monday',
@@ -252,6 +255,8 @@ const TRANSLATIONS = {
     schedule: {
       todayTitle: '📅 <b>Сегодня</b>',
       tomorrowTitle: '📆 <b>Завтра</b>',
+      todayDateLine: '📆 Сегодня, {date}',
+      tomorrowDateLine: '📆 Завтра, {date}',
       weekTitle: '📖 <b>Вся неделя</b>',
       noLessonsToday: '🎉 Сегодня занятий нет.',
       noLessonsTomorrow: '🎉 Завтра занятий нет.',
@@ -376,6 +381,7 @@ const TRANSLATIONS = {
     },
     evening: {
       title: '🌙 <b>Коротко о завтра</b>',
+      dateLine: '📆 Завтра, {date}',
       noLessons: '🎉 Завтра занятий нет.',
       noLessonsHint: 'Можно немного выдохнуть.',
       summary: '📚 Пар завтра: <b>{count}</b>',
@@ -385,7 +391,7 @@ const TRANSLATIONS = {
     help: {
       title: '❓ <b>Помощь</b>',
       body: 'Бот помогает быстро смотреть расписание, видеть ближайшую пару, получать напоминания, сохранять избранные группы, добавлять заметки к парам и получать утренние сообщения.\n\nКнопки:\n📅 Сегодня - расписание на сегодня\n📆 Завтра - расписание на завтра\n📖 Вся неделя - полное расписание на неделю\n📚 Следующая пара - текущая или ближайшая пара\n⭐ Избранное - быстрый просмотр закреплённых групп\n⚙️ Настройки - язык, напоминания, избранное и личные параметры\n\nКнопки в настройках:\n🌐 Язык - переключение RU / EN\n🔔 Уведомления - выбор времени напоминаний\n🔕 На сегодня - выключить напоминания до завтра\n⭐ Настроить избранное - закрепить до 2 групп\n📝 Заметки - добавить заметку к конкретной паре\n🕗 Время утра - выбрать 07:00 / 07:30 / 08:00\n🧾 Мои настройки - посмотреть текущие настройки\n🔄 Сменить группу - сменить основную группу\n🌅 Ежедневные сообщения - включить или выключить утренние сообщения\n\nКоманды:\n/start - запуск бота\n/help - это сообщение\n/today - расписание на сегодня\n/today 2-8 - быстро посмотреть любую доступную группу\n/tomorrow - расписание на завтра\n/tomorrow 2-8 - быстро посмотреть завтра для любой доступной группы\n/week - расписание на неделю\n/week 2-8 - быстро посмотреть неделю любой доступной группы\n/next - следующая или текущая пара\n/settings - открыть настройки\n/mysettings - показать ваши настройки\n/changegroup - выбрать группу\n/favorites - настроить избранные группы\n/morning - переключить ежедневные сообщения\n/morningtime - выбрать время утреннего сообщения\n/mutetoday - отключить напоминания до завтра',
-      admin: '\n\nАдмин:\n/stats - статистика\n/user 123456789 - карточка пользователя\n/inactive - список неактивных пользователей\n/cleanupinactive - удалить неактивных из базы\n/broadcast текст - рассылка всем\n/broadcastgroup 2-7 текст - рассылка одной группе'
+      admin: '\n\nАдмин:\n/stats - статистика\n/user 123456789 - карточка пользователя\n/inactive - список неактивных пользователей\n/cleanupinactive - удалить неактивных из базы\n/morningtest - отправить себе утреннее сообщение\n/eveningtest - отправить себе вечерний preview\n/broadcast текст - рассылка всем\n/broadcastgroup 2-7 текст - рассылка одной группе'
     },
     weekdays: {
       1: 'Понедельник',

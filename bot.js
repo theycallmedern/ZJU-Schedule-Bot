@@ -28,9 +28,11 @@ import {
   formatAdminStats,
   formatAdminUserCard,
   formatAdminUsersByGroupMessages,
+  formatEveningPreview,
   formatFullWeek,
   formatHelp,
   formatLessonNotesOverview,
+  formatMorningMessage,
   formatMySettings,
   formatNextClass,
   formatScheduleForToday,
@@ -44,6 +46,7 @@ import {
   CONFIG,
   addDays,
   escapeHtml,
+  fetchHangzhouWeather,
   getBotInstanceId,
   getAdminId,
   getNowContext,
@@ -365,6 +368,16 @@ async function handleCommand({ text, chatId, env, user, language }) {
     return;
   }
 
+  if (command === '/morningtest') {
+    await onMorningTest({ env, chatId, user, language });
+    return;
+  }
+
+  if (command === '/eveningtest') {
+    await onEveningTest({ env, chatId, user, language });
+    return;
+  }
+
   if (command === '/help') {
     await onHelp({ env, chatId, language });
     return;
@@ -383,7 +396,7 @@ async function onToday({ env, chatId, user, language }) {
   const lessons = await getLessonsByGroupAndWeekday(env.DB, user.group_name, now.zoned.weekday);
   const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, user.group_name, lessons);
 
-  await sendMainMenu(env, chatId, language, formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes));
+  await sendMainMenu(env, chatId, language, formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes, now.date));
 }
 
 async function onTodayCommand({ env, chatId, user, language, argsText }) {
@@ -408,8 +421,7 @@ async function onTodayCommand({ env, chatId, user, language, argsText }) {
   const now = getNowContext(new Date(), CONFIG.TIMEZONE);
   const lessons = await getLessonsByGroupAndWeekday(env.DB, targetGroup, now.zoned.weekday);
   const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, targetGroup, lessons);
-  let text = formatScheduleForToday(language, lessons, now.nowMinutes);
-  text = formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes);
+  let text = formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes, now.date);
 
   if (requestedGroup) {
     text = prependQuickGroupHeader(language, targetGroup, text);
@@ -441,7 +453,7 @@ async function onTomorrowCommand({ env, chatId, user, language, argsText }) {
   const parts = getZonedDateParts(tomorrow, CONFIG.TIMEZONE);
   const lessons = await getLessonsByGroupAndWeekday(env.DB, targetGroup, parts.weekday);
   const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, targetGroup, lessons);
-  let text = formatScheduleForTomorrow(language, lessonsWithNotes);
+  let text = formatScheduleForTomorrow(language, lessonsWithNotes, tomorrow);
 
   if (requestedGroup) {
     text = prependQuickGroupHeader(language, targetGroup, text);
@@ -461,7 +473,7 @@ async function onTomorrow({ env, chatId, user, language }) {
   const lessons = await getLessonsByGroupAndWeekday(env.DB, user.group_name, parts.weekday);
   const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, user.group_name, lessons);
 
-  await sendMainMenu(env, chatId, language, formatScheduleForTomorrow(language, lessonsWithNotes));
+  await sendMainMenu(env, chatId, language, formatScheduleForTomorrow(language, lessonsWithNotes, tomorrow));
 }
 
 async function onWeekCommand({ env, chatId, user, language, argsText }) {
@@ -693,6 +705,57 @@ async function onAdminUser({ env, chatId, language, argsText }) {
   await sendMessage(env, chatId, formatAdminUserCard(language, targetUser));
 }
 
+async function onMorningTest({ env, chatId, user, language }) {
+  if (!isAdmin(chatId, env)) {
+    await sendMessage(env, chatId, t(language, 'common.accessDenied'));
+    return;
+  }
+
+  if (!user?.group_name) {
+    await sendNoGroupSelected(env, chatId, language);
+    return;
+  }
+
+  const now = getNowContext(new Date(), CONFIG.TIMEZONE);
+  const lessons = await getLessonsByGroupAndWeekday(env.DB, user.group_name, now.zoned.weekday);
+  const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, user.group_name, lessons);
+  const weather = await fetchHangzhouWeather();
+  const text = formatMorningMessage(language, {
+    weather,
+    lessons: lessonsWithNotes,
+    firstClassIn: getMinutesUntilFirstClass(lessonsWithNotes, now.nowMinutes)
+  });
+
+  await sendMessage(env, chatId, text, {
+    reply_markup: mainMenuKeyboard(language)
+  });
+}
+
+async function onEveningTest({ env, chatId, user, language }) {
+  if (!isAdmin(chatId, env)) {
+    await sendMessage(env, chatId, t(language, 'common.accessDenied'));
+    return;
+  }
+
+  if (!user?.group_name) {
+    await sendNoGroupSelected(env, chatId, language);
+    return;
+  }
+
+  const tomorrow = addDays(new Date(), 1);
+  const parts = getZonedDateParts(tomorrow, CONFIG.TIMEZONE);
+  const lessons = await getLessonsByGroupAndWeekday(env.DB, user.group_name, parts.weekday);
+  const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, user.group_name, lessons);
+  const text = formatEveningPreview(language, {
+    lessons: lessonsWithNotes,
+    date: tomorrow
+  });
+
+  await sendMessage(env, chatId, text, {
+    reply_markup: mainMenuKeyboard(language)
+  });
+}
+
 async function onHelp({ env, chatId, language }) {
   await sendMainMenu(env, chatId, language, formatHelp(language, isAdmin(chatId, env)));
 }
@@ -807,7 +870,7 @@ async function onFavoriteQuickView({ env, chatId, user, language, groupName, vie
     const now = getNowContext(new Date(), CONFIG.TIMEZONE);
     const lessons = await getLessonsByGroupAndWeekday(env.DB, groupName, now.zoned.weekday);
     const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, groupName, lessons);
-    const text = prependQuickGroupHeader(language, groupName, formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes));
+    const text = prependQuickGroupHeader(language, groupName, formatScheduleForToday(language, lessonsWithNotes, now.nowMinutes, now.date));
     await sendMessage(env, chatId, text, {
       reply_markup: favoritesViewKeyboard(language, favoriteGroups)
     });
@@ -819,7 +882,7 @@ async function onFavoriteQuickView({ env, chatId, user, language, groupName, vie
     const parts = getZonedDateParts(tomorrow, CONFIG.TIMEZONE);
     const lessons = await getLessonsByGroupAndWeekday(env.DB, groupName, parts.weekday);
     const lessonsWithNotes = await attachLessonNotes(env.DB, chatId, groupName, lessons);
-    const text = prependQuickGroupHeader(language, groupName, formatScheduleForTomorrow(language, lessonsWithNotes));
+    const text = prependQuickGroupHeader(language, groupName, formatScheduleForTomorrow(language, lessonsWithNotes, tomorrow));
     await sendMessage(env, chatId, text, {
       reply_markup: favoritesViewKeyboard(language, favoriteGroups)
     });
@@ -1477,4 +1540,17 @@ async function attachLessonNotes(db, chatId, groupName, lessons) {
     ...lesson,
     note: notesMap.get(`${lesson.weekday}:${lesson.lesson_number}`) ?? null
   }));
+}
+
+function getMinutesUntilFirstClass(lessons, nowMinutes) {
+  for (const lesson of lessons) {
+    const startMinutes = parseTimeToMinutes(lesson.start_time);
+    if (startMinutes === null) {
+      continue;
+    }
+    if (startMinutes >= nowMinutes) {
+      return startMinutes - nowMinutes;
+    }
+  }
+  return null;
 }
