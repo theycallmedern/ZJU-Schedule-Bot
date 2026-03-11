@@ -534,7 +534,48 @@ async function handleCallbackQuery(query, env) {
     }
 
     if (data === 'settings:favorites') {
-      await sendFavoritesPrompt(env, chatId, language, user);
+      await renderInlineFavoritesMenu(env, chatId, messageId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data.startsWith('settings:favorites:toggle:')) {
+      const groupName = data.slice('settings:favorites:toggle:'.length);
+      if (!CONFIG.GROUPS.includes(groupName)) {
+        await answerCallbackQuery(env, query.id);
+        return;
+      }
+
+      const currentFavorites = Array.isArray(user.favorite_groups) ? [...user.favorite_groups] : [];
+      const hasGroup = currentFavorites.includes(groupName);
+      let nextFavorites = currentFavorites;
+
+      if (hasGroup) {
+        nextFavorites = currentFavorites.filter((item) => item !== groupName);
+      } else {
+        if (currentFavorites.length >= 2) {
+          await answerCallbackQuery(env, query.id, { text: t(language, 'settings.favoritesLimit') });
+          return;
+        }
+        nextFavorites = [...currentFavorites, groupName];
+      }
+
+      await setUserFavoriteGroups(env.DB, chatId, nextFavorites);
+      const freshUser = {
+        ...user,
+        favorite_groups: nextFavorites
+      };
+      await renderInlineFavoritesMenu(env, chatId, messageId, language, freshUser, {
+        prefixText: t(language, 'settings.favoritesUpdated', {
+          value: nextFavorites.length ? nextFavorites.join(', ') : t(language, 'settings.noFavorites')
+        })
+      });
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:favorites:back') {
+      await renderInlineSettingsMenu(env, chatId, messageId, language, user);
       await answerCallbackQuery(env, query.id);
       return;
     }
@@ -1301,7 +1342,19 @@ async function sendFavoritesPrompt(env, chatId, language, user) {
 
   const text = `${t(language, 'common.pickFavorites')}\n\n${t(language, 'settings.favorites')}: <b>${escapeHtml(favorites)}</b>`;
   await sendMessage(env, chatId, text, {
-    reply_markup: favoritesKeyboard(language, user?.favorite_groups ?? [])
+    reply_markup: inlineFavoritesKeyboard(language, user?.favorite_groups ?? [])
+  });
+}
+
+async function renderInlineFavoritesMenu(env, chatId, messageId, language, user, options = {}) {
+  const favorites = Array.isArray(user?.favorite_groups) && user.favorite_groups.length
+    ? user.favorite_groups.join(', ')
+    : t(language, 'settings.noFavorites');
+  const prefixText = String(options.prefixText ?? '').trim();
+  const body = `${t(language, 'common.pickFavorites')}\n\n${t(language, 'settings.favorites')}: <b>${escapeHtml(favorites)}</b>`;
+  const text = prefixText ? `${prefixText}\n\n${body}` : body;
+  await editOrSendMessage(env, chatId, messageId, text, {
+    reply_markup: inlineFavoritesKeyboard(language, user?.favorite_groups ?? [])
   });
 }
 
@@ -1618,6 +1671,25 @@ function favoritesKeyboard(language, favoriteGroups = []) {
     keyboard: [...rows, [menu.back]],
     resize_keyboard: true
   };
+}
+
+function inlineFavoritesKeyboard(language, favoriteGroups = []) {
+  const menu = getLocale(language).menu;
+  const favorites = new Set(Array.isArray(favoriteGroups) ? favoriteGroups : []);
+  const rows = [];
+
+  for (let index = 0; index < CONFIG.GROUPS.length; index += 2) {
+    rows.push(
+      CONFIG.GROUPS.slice(index, index + 2).map((groupName) => ({
+        text: `${favorites.has(groupName) ? '✅' : '⭐'} ${groupName}`,
+        callback_data: `settings:favorites:toggle:${groupName}`
+      }))
+    );
+  }
+
+  rows.push([{ text: menu.back, callback_data: 'settings:favorites:back' }]);
+
+  return { inline_keyboard: rows };
 }
 
 function favoritesViewKeyboard(language, favoriteGroups = []) {
