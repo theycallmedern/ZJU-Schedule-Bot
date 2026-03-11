@@ -23,6 +23,10 @@ const USER_COLUMN_MIGRATIONS = [
     sql: `ALTER TABLE users ADD COLUMN reminder_minutes INTEGER NOT NULL DEFAULT ${CONFIG.DEFAULT_REMINDER_MINUTES}`
   },
   {
+    name: 'reminder_mute_until_date',
+    sql: 'ALTER TABLE users ADD COLUMN reminder_mute_until_date TEXT'
+  },
+  {
     name: 'morning_enabled',
     sql: 'ALTER TABLE users ADD COLUMN morning_enabled INTEGER NOT NULL DEFAULT 1'
   },
@@ -172,6 +176,7 @@ export async function getUser(db, chatId) {
     language: user.language ?? CONFIG.DEFAULT_LANGUAGE,
     notifications_enabled: Number(user.notifications_enabled ?? 1),
     reminder_minutes: Number(user.reminder_minutes ?? CONFIG.DEFAULT_REMINDER_MINUTES),
+    reminder_mute_until_date: user.reminder_mute_until_date ?? null,
     morning_enabled: Number(user.morning_enabled ?? 1),
     morning_time: normalizeMorningTime(user.morning_time),
     last_morning_sent: user.last_morning_sent ?? null,
@@ -180,7 +185,10 @@ export async function getUser(db, chatId) {
     bot_fingerprint: user.bot_fingerprint ?? null,
     tg_username: user.tg_username ?? null,
     tg_first_name: user.tg_first_name ?? null,
-    tg_last_name: user.tg_last_name ?? null
+    tg_last_name: user.tg_last_name ?? null,
+    is_active: Number(user.is_active ?? 1),
+    last_seen_at: user.last_seen_at ?? null,
+    deactivated_at: user.deactivated_at ?? null
   };
 }
 
@@ -218,6 +226,13 @@ export async function setUserNotifications(db, chatId, enabled, reminderMinutes)
   await db
     .prepare('UPDATE users SET notifications_enabled = ?, reminder_minutes = ? WHERE chat_id = ?')
     .bind(enabled, reminderMinutes, chatId)
+    .run();
+}
+
+export async function setUserReminderMuteUntilDate(db, chatId, dateKey) {
+  await db
+    .prepare('UPDATE users SET reminder_mute_until_date = ? WHERE chat_id = ?')
+    .bind(dateKey || null, chatId)
     .run();
 }
 
@@ -351,18 +366,23 @@ export async function getUsersForReminders(db) {
   try {
     const response = await db
       .prepare(
-        'SELECT chat_id, group_name, language, notifications_enabled, reminder_minutes, last_reminder_key FROM users WHERE group_name IS NOT NULL AND notifications_enabled = 1 AND COALESCE(is_active, 1) = 1'
+        'SELECT chat_id, group_name, language, notifications_enabled, reminder_minutes, last_reminder_key, reminder_mute_until_date FROM users WHERE group_name IS NOT NULL AND notifications_enabled = 1 AND COALESCE(is_active, 1) = 1'
       )
       .all();
     results = response.results ?? [];
   } catch (error) {
     console.error('get_users_for_reminders_active_filter_warning', { error: String(error) });
-    const response = await db
-      .prepare(
-        'SELECT chat_id, group_name, language, notifications_enabled, reminder_minutes, last_reminder_key FROM users WHERE group_name IS NOT NULL AND notifications_enabled = 1'
-      )
-      .all();
-    results = response.results ?? [];
+    try {
+      const response = await db
+        .prepare(
+          'SELECT chat_id, group_name, language, notifications_enabled, reminder_minutes, last_reminder_key FROM users WHERE group_name IS NOT NULL AND notifications_enabled = 1'
+        )
+        .all();
+      results = response.results ?? [];
+    } catch (fallbackError) {
+      console.error('get_users_for_reminders_fallback_warning', { error: String(fallbackError) });
+      results = [];
+    }
   }
 
   return (results ?? []).map((row) => ({
@@ -371,7 +391,8 @@ export async function getUsersForReminders(db) {
     language: row.language ?? CONFIG.DEFAULT_LANGUAGE,
     notifications_enabled: Number(row.notifications_enabled ?? 0),
     reminder_minutes: Number(row.reminder_minutes ?? CONFIG.DEFAULT_REMINDER_MINUTES),
-    last_reminder_key: row.last_reminder_key ?? null
+    last_reminder_key: row.last_reminder_key ?? null,
+    reminder_mute_until_date: row.reminder_mute_until_date ?? null
   }));
 }
 

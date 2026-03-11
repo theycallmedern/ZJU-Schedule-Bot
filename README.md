@@ -8,6 +8,7 @@ Production-like Telegram schedule bot on **Cloudflare Workers** with these featu
 - reminder settings (5 min / 10 min / off)
 - pinned favorite groups
 - custom morning message time (`07:00`, `07:30`, `08:00`)
+- temporary reminder mute until tomorrow
 - my settings
 - admin broadcast and stats
 - `/help` command with all functions
@@ -60,6 +61,7 @@ ALTER TABLE users ADD COLUMN group_name TEXT;
 ALTER TABLE users ADD COLUMN language TEXT NOT NULL DEFAULT 'en';
 ALTER TABLE users ADD COLUMN notifications_enabled INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN reminder_minutes INTEGER NOT NULL DEFAULT 10;
+ALTER TABLE users ADD COLUMN reminder_mute_until_date TEXT;
 ALTER TABLE users ADD COLUMN morning_enabled INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE users ADD COLUMN favorite_groups TEXT;
 ALTER TABLE users ADD COLUMN morning_time TEXT NOT NULL DEFAULT '07:00';
@@ -170,6 +172,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 - `/broadcast <text>` - sends message to all users
 - `/broadcastgroup <group> <text>` - sends message to one group
 - `/stats` - total users, users by group, enabled notifications + today's delivery stats
+- `/user <chat_id>` - admin card for one user
 - `/today <group>` - quick one-time today schedule for any supported group
 - `/tomorrow <group>` - quick one-time tomorrow schedule for any supported group
 - `/week <group>` - quick one-time full week for any supported group

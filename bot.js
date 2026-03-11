@@ -14,12 +14,14 @@ import {
   setUserLanguage,
   setUserMorningEnabled,
   setUserMorningTime,
+  setUserReminderMuteUntilDate,
   setUserNotifications,
   getWeekLessonsByGroup
 } from './db.js';
 import {
   formatAdminInactiveUsersMessage,
   formatAdminStats,
+  formatAdminUserCard,
   formatAdminUsersByGroupMessages,
   formatFullWeek,
   formatHelp,
@@ -131,6 +133,9 @@ export async function handleUpdate(update, env) {
       return;
     case 'notifications':
       await sendNotificationPrompt(env, chatId, language);
+      return;
+    case 'muteToday':
+      await onMuteToday({ env, chatId, user, language });
       return;
     case 'favoritesView':
       await sendFavoritesViewPrompt(env, chatId, language, user);
@@ -284,6 +289,11 @@ async function handleCommand({ text, chatId, env, user, language }) {
     return;
   }
 
+  if (command === '/mutetoday') {
+    await onMuteToday({ env, chatId, user, language });
+    return;
+  }
+
   if (command === '/favorites') {
     await onFavoritesCommand({ env, chatId, user, language, argsText });
     return;
@@ -312,6 +322,11 @@ async function handleCommand({ text, chatId, env, user, language }) {
 
   if (command === '/stats') {
     await onStats({ env, chatId, language });
+    return;
+  }
+
+  if (command === '/user') {
+    await onAdminUser({ env, chatId, language, argsText });
     return;
   }
 
@@ -624,6 +639,27 @@ async function onCleanupInactive({ env, chatId, language }) {
   await sendMessage(env, chatId, t(language, 'admin.cleanupInactiveDone', { count: removed }));
 }
 
+async function onAdminUser({ env, chatId, language, argsText }) {
+  if (!isAdmin(chatId, env)) {
+    await sendMessage(env, chatId, t(language, 'common.accessDenied'));
+    return;
+  }
+
+  const targetChatId = Number(String(argsText || '').trim());
+  if (!Number.isFinite(targetChatId)) {
+    await sendMessage(env, chatId, t(language, 'admin.userUsage'));
+    return;
+  }
+
+  const targetUser = await getUser(env.DB, targetChatId);
+  if (!targetUser) {
+    await sendMessage(env, chatId, t(language, 'admin.userNotFound'));
+    return;
+  }
+
+  await sendMessage(env, chatId, formatAdminUserCard(language, targetUser));
+}
+
 async function onHelp({ env, chatId, language }) {
   await sendMainMenu(env, chatId, language, formatHelp(language, isAdmin(chatId, env)));
 }
@@ -688,6 +724,17 @@ async function onMorningToggle({ env, chatId, user, language }) {
     : t(freshLanguage, 'settings.disabled');
 
   await sendSettingsText(env, chatId, freshLanguage, t(freshLanguage, 'settings.morningUpdated', { value }));
+}
+
+async function onMuteToday({ env, chatId, user, language }) {
+  const now = getNowContext(new Date(), CONFIG.TIMEZONE);
+  if (user?.reminder_mute_until_date === now.dateKey) {
+    await sendSettingsText(env, chatId, language, t(language, 'settings.muteTodayAlready'));
+    return;
+  }
+
+  await setUserReminderMuteUntilDate(env.DB, chatId, now.dateKey);
+  await sendSettingsText(env, chatId, language, t(language, 'settings.muteTodayUpdated'));
 }
 
 async function onFavoriteToggle({ env, chatId, user, language, groupName }) {
@@ -772,6 +819,9 @@ function detectAction(text) {
   }
   if (matchesMenuLabel(text, 'notifications')) {
     return 'notifications';
+  }
+  if (matchesMenuLabel(text, 'muteToday')) {
+    return 'muteToday';
   }
   if (matchesMenuLabel(text, 'favoritesView')) {
     return 'favoritesView';
@@ -923,9 +973,9 @@ function settingsKeyboard(language) {
   return {
     keyboard: [
       [menu.language, menu.notifications],
+      [menu.muteToday, menu.morningToggle],
       [menu.favoritesManage, menu.morningTime],
       [menu.mySettings, menu.changeGroup],
-      [menu.morningToggle],
       [menu.back]
     ],
     resize_keyboard: true

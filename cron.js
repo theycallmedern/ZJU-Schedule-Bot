@@ -134,6 +134,10 @@ export async function runReminderCron(env) {
       continue;
     }
 
+    if (user.reminder_mute_until_date && user.reminder_mute_until_date >= now.dateKey) {
+      continue;
+    }
+
     let lessons = lessonsByGroup.get(user.group_name);
     if (!lessons) {
       lessons = await getLessonsByGroupAndWeekday(env.DB, user.group_name, now.zoned.weekday);

@@ -129,6 +129,56 @@ export function formatMySettings(language, user) {
   return formatSettingsText(language, user, 'settings.mySettingsTitle');
 }
 
+export function formatAdminUserCard(language, user) {
+  const lines = [t(language, 'admin.userCardTitle'), ''];
+  const username = normalizeUsername(user.tg_username);
+  const fullName = [user.tg_first_name, user.tg_last_name].filter(Boolean).join(' ').trim();
+  const favorites = Array.isArray(user.favorite_groups) && user.favorite_groups.length
+    ? user.favorite_groups.join(', ')
+    : t(language, 'settings.noFavorites');
+  const languageLabel = user.language === 'ru' ? 'Русский' : 'English';
+  const notificationsState = Number(user.notifications_enabled) === 1
+    ? t(language, 'settings.enabled')
+    : t(language, 'settings.disabled');
+  const reminder = Number(user.notifications_enabled) === 1
+    ? `${user.reminder_minutes} min`
+    : t(language, 'settings.disabled');
+  const morningState = Number(user.morning_enabled) === 1
+    ? t(language, 'settings.enabled')
+    : t(language, 'settings.disabled');
+  const activeState = Number(user.is_active) === 1
+    ? t(language, 'admin.active')
+    : t(language, 'admin.inactive');
+  const lastSeen = normalizeDateTime(user.last_seen_at, language);
+  const deactivatedAt = normalizeDateTime(user.deactivated_at, language);
+  const muteState = getReminderMuteState(language, user);
+
+  lines.push(`🆔 <b>${user.chat_id}</b>`);
+  if (username) {
+    lines.push(`👤 @${escapeHtml(username)}`);
+  } else if (fullName) {
+    lines.push(`👤 ${escapeHtml(fullName)}`);
+  }
+  lines.push('');
+  lines.push(`${t(language, 'settings.group')}: <b>${escapeHtml(user.group_name || t(language, 'settings.notSelected'))}</b>`);
+  lines.push(`${t(language, 'settings.language')}: <b>${escapeHtml(languageLabel)}</b>`);
+  lines.push(`${t(language, 'settings.notifications')}: <b>${escapeHtml(notificationsState)}</b>`);
+  lines.push(`${t(language, 'settings.reminder')}: <b>${escapeHtml(reminder)}</b>`);
+  lines.push(`${t(language, 'settings.reminderMute')}: <b>${escapeHtml(muteState)}</b>`);
+  lines.push(`${t(language, 'settings.morningTime')}: <b>${escapeHtml(user.morning_time || CONFIG.DEFAULT_MORNING_TIME)}</b>`);
+  lines.push(`${t(language, 'settings.morning')}: <b>${escapeHtml(morningState)}</b>`);
+  lines.push(`${t(language, 'settings.favorites')}: <b>${escapeHtml(favorites)}</b>`);
+  lines.push(`${t(language, 'admin.status')}: <b>${escapeHtml(activeState)}</b>`);
+  if (lastSeen) {
+    lines.push(`${t(language, 'admin.lastSeen')}: <b>${escapeHtml(lastSeen)}</b>`);
+  }
+  if (deactivatedAt) {
+    lines.push(`${t(language, 'admin.deactivatedAt')}: <b>${escapeHtml(deactivatedAt)}</b>`);
+  }
+
+  return lines.join('\n');
+}
+
 export function formatMorningMessage(language, payload) {
   const { weather, lessons, firstClassIn } = payload;
   const lines = [t(language, 'morning.title'), ''];
@@ -565,6 +615,7 @@ function formatSettingsText(language, user, titleKey) {
     : t(language, 'settings.noFavorites');
   const languageLabel = user.language === 'ru' ? 'Русский' : 'English';
   const morningTime = user.morning_time || '07:00';
+  const reminderMute = getReminderMuteState(language, user);
 
   return `${t(language, titleKey)}\n\n` +
     `${t(language, 'settings.group')}: <b>${escapeHtml(group)}</b>\n` +
@@ -572,6 +623,7 @@ function formatSettingsText(language, user, titleKey) {
     `${t(language, 'settings.language')}: <b>${escapeHtml(languageLabel)}</b>\n` +
     `${t(language, 'settings.notifications')}: <b>${escapeHtml(notificationsState)}</b>\n` +
     `${t(language, 'settings.reminder')}: <b>${escapeHtml(reminder)}</b>\n` +
+    `${t(language, 'settings.reminderMute')}: <b>${escapeHtml(reminderMute)}</b>\n` +
     `${t(language, 'settings.morningTime')}: <b>${escapeHtml(morningTime)}</b>\n` +
     `${t(language, 'settings.morning')}: <b>${escapeHtml(morningState)}</b>`;
 }
@@ -590,6 +642,13 @@ function formatLessonCardLines(lesson, index) {
   }
 
   return lines;
+}
+
+function getReminderMuteState(language, user) {
+  const now = getNowContext(new Date(), CONFIG.TIMEZONE);
+  return user?.reminder_mute_until_date === now.dateKey
+    ? t(language, 'settings.mutedToday')
+    : t(language, 'settings.notMuted');
 }
 
 function numberEmoji(index) {

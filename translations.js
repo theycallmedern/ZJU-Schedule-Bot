@@ -9,6 +9,7 @@ const TRANSLATIONS = {
       settings: '⚙️ Settings',
       language: '🌐 Language',
       notifications: '🔔 Notifications',
+      muteToday: '🔕 Mute today',
       favoritesManage: '⭐ Manage favorites',
       morningTime: '🕗 Morning time',
       morningToggle: '🌅 Daily updates',
@@ -67,6 +68,8 @@ const TRANSLATIONS = {
       title: '⚙️ <b>Settings</b>',
       languageUpdated: '🌐 Language updated: <b>{language}</b>',
       notificationsUpdated: '🔔 Notifications updated: <b>{value}</b>',
+      muteTodayUpdated: '🔕 Reminders muted until tomorrow.',
+      muteTodayAlready: '🔕 Reminders are already muted for today.',
       morningUpdated: '🌅 Daily updates: <b>{value}</b>',
       mySettingsTitle: '🧾 <b>My settings</b>',
       group: '👥 Group',
@@ -74,6 +77,7 @@ const TRANSLATIONS = {
       language: '🌐 Language',
       notifications: '🔔 Notifications',
       reminder: '⏰ Reminder',
+      reminderMute: '🔕 Reminder mute',
       morningTime: '🕗 Morning time',
       morning: '🌅 Daily updates',
       enabled: 'On',
@@ -83,7 +87,9 @@ const TRANSLATIONS = {
       noFavoritesView: '⭐ No favorite groups yet. Add them in settings first.',
       favoritesUpdated: '⭐ Favorites updated: <b>{value}</b>',
       favoritesLimit: '⚠️ You can pin up to 2 favorite groups.',
-      morningTimeUpdated: '🕗 Morning time updated: <b>{value}</b>'
+      morningTimeUpdated: '🕗 Morning time updated: <b>{value}</b>',
+      mutedToday: 'Today',
+      notMuted: 'No'
     },
     weather: {
       title: 'Weather in Hangzhou:',
@@ -128,6 +134,12 @@ const TRANSLATIONS = {
       usersByGroupTitle: '👤 Users by group:',
       inactiveTitle: '🚫 <b>Inactive users</b>',
       inactiveNone: 'No inactive users',
+      userUsage: 'Usage: /user 123456789',
+      userNotFound: 'User not found',
+      userCardTitle: '👤 <b>User card</b>',
+      status: 'Status',
+      active: 'Active',
+      inactive: 'Inactive',
       cleanupInactiveDone: '🧹 Inactive users removed: <b>{count}</b>',
       lastSeen: 'last seen',
       deactivatedAt: 'deactivated',
@@ -148,8 +160,8 @@ const TRANSLATIONS = {
     },
     help: {
       title: '❓ <b>Help</b>',
-      body: 'This bot helps you check your class schedule, follow the next lesson, manage reminders, save favorite groups and receive morning updates.\n\nButtons:\n📅 Today - schedule for today\n📆 Tomorrow - schedule for tomorrow\n📖 Full week - full weekly schedule\n📚 Next class - current or upcoming lesson\n⭐ Favorites - quick view for favorite groups\n⚙️ Settings - language, reminders, favorites and personal options\n\nSettings buttons:\n🌐 Language - switch RU / EN\n🔔 Notifications - choose reminder time\n⭐ Manage favorites - pin up to 2 groups\n🕗 Morning time - choose 07:00 / 07:30 / 08:00\n🧾 My settings - view current settings\n🔄 Change group - change your main group\n🌅 Daily updates - turn morning messages on or off\n\nCommands:\n/start - start bot\n/help - show this help\n/today - today schedule\n/today 2-8 - quick schedule for any supported group\n/tomorrow - tomorrow schedule\n/tomorrow 2-8 - quick tomorrow schedule for any supported group\n/week - full week\n/week 2-8 - quick full week for any supported group\n/next - next or current class\n/settings - open settings\n/mysettings - show your settings\n/changegroup - choose group\n/favorites - manage favorite groups\n/morning - toggle daily updates\n/morningtime - choose morning message time',
-      admin: '\n\nAdmin:\n/stats - bot stats\n/inactive - list inactive users\n/cleanupinactive - remove inactive users from database\n/broadcast text - send to all users\n/broadcastgroup 2-7 text - send to one group'
+      body: 'This bot helps you check your class schedule, follow the next lesson, manage reminders, save favorite groups and receive morning updates.\n\nButtons:\n📅 Today - schedule for today\n📆 Tomorrow - schedule for tomorrow\n📖 Full week - full weekly schedule\n📚 Next class - current or upcoming lesson\n⭐ Favorites - quick view for favorite groups\n⚙️ Settings - language, reminders, favorites and personal options\n\nSettings buttons:\n🌐 Language - switch RU / EN\n🔔 Notifications - choose reminder time\n🔕 Mute today - pause reminders until tomorrow\n⭐ Manage favorites - pin up to 2 groups\n🕗 Morning time - choose 07:00 / 07:30 / 08:00\n🧾 My settings - view current settings\n🔄 Change group - change your main group\n🌅 Daily updates - turn morning messages on or off\n\nCommands:\n/start - start bot\n/help - show this help\n/today - today schedule\n/today 2-8 - quick schedule for any supported group\n/tomorrow - tomorrow schedule\n/tomorrow 2-8 - quick tomorrow schedule for any supported group\n/week - full week\n/week 2-8 - quick full week for any supported group\n/next - next or current class\n/settings - open settings\n/mysettings - show your settings\n/changegroup - choose group\n/favorites - manage favorite groups\n/morning - toggle daily updates\n/morningtime - choose morning message time\n/mutetoday - mute reminders until tomorrow',
+      admin: '\n\nAdmin:\n/stats - bot stats\n/user 123456789 - user card\n/inactive - list inactive users\n/cleanupinactive - remove inactive users from database\n/broadcast text - send to all users\n/broadcastgroup 2-7 text - send to one group'
     },
     weekdays: {
       1: 'Monday',
@@ -175,6 +187,7 @@ const TRANSLATIONS = {
       settings: '⚙️ Настройки',
       language: '🌐 Язык',
       notifications: '🔔 Уведомления',
+      muteToday: '🔕 На сегодня',
       favoritesManage: '⭐ Настроить избранное',
       morningTime: '🕗 Время утра',
       morningToggle: '🌅 Ежедневные сообщения',
@@ -233,6 +246,8 @@ const TRANSLATIONS = {
       title: '⚙️ <b>Настройки</b>',
       languageUpdated: '🌐 Язык обновлен: <b>{language}</b>',
       notificationsUpdated: '🔔 Уведомления обновлены: <b>{value}</b>',
+      muteTodayUpdated: '🔕 Напоминания отключены до завтра.',
+      muteTodayAlready: '🔕 Напоминания уже отключены на сегодня.',
       morningUpdated: '🌅 Ежедневные сообщения: <b>{value}</b>',
       mySettingsTitle: '🧾 <b>Мои настройки</b>',
       group: '👥 Группа',
@@ -240,6 +255,7 @@ const TRANSLATIONS = {
       language: '🌐 Язык',
       notifications: '🔔 Уведомления',
       reminder: '⏰ Напоминание',
+      reminderMute: '🔕 Пауза напоминаний',
       morningTime: '🕗 Время утра',
       morning: '🌅 Ежедневные сообщения',
       enabled: 'Вкл',
@@ -249,7 +265,9 @@ const TRANSLATIONS = {
       noFavoritesView: '⭐ У вас пока нет избранных групп. Добавьте их сначала в настройках.',
       favoritesUpdated: '⭐ Избранное обновлено: <b>{value}</b>',
       favoritesLimit: '⚠️ Можно закрепить не больше 2 групп.',
-      morningTimeUpdated: '🕗 Время утра обновлено: <b>{value}</b>'
+      morningTimeUpdated: '🕗 Время утра обновлено: <b>{value}</b>',
+      mutedToday: 'На сегодня',
+      notMuted: 'Нет'
     },
     weather: {
       title: 'Погода в Ханчжоу:',
@@ -294,6 +312,12 @@ const TRANSLATIONS = {
       usersByGroupTitle: '👤 Пользователи по группам:',
       inactiveTitle: '🚫 <b>Неактивные пользователи</b>',
       inactiveNone: 'Неактивных пользователей нет',
+      userUsage: 'Использование: /user 123456789',
+      userNotFound: 'Пользователь не найден',
+      userCardTitle: '👤 <b>Карточка пользователя</b>',
+      status: 'Статус',
+      active: 'Активен',
+      inactive: 'Неактивен',
       cleanupInactiveDone: '🧹 Удалено неактивных пользователей: <b>{count}</b>',
       lastSeen: 'последняя активность',
       deactivatedAt: 'деактивирован',
@@ -314,8 +338,8 @@ const TRANSLATIONS = {
     },
     help: {
       title: '❓ <b>Помощь</b>',
-      body: 'Бот помогает быстро смотреть расписание, видеть ближайшую пару, получать напоминания, сохранять избранные группы и получать утренние сообщения.\n\nКнопки:\n📅 Сегодня - расписание на сегодня\n📆 Завтра - расписание на завтра\n📖 Вся неделя - полное расписание на неделю\n📚 Следующая пара - текущая или ближайшая пара\n⭐ Избранное - быстрый просмотр закреплённых групп\n⚙️ Настройки - язык, напоминания, избранное и личные параметры\n\nКнопки в настройках:\n🌐 Язык - переключение RU / EN\n🔔 Уведомления - выбор времени напоминаний\n⭐ Настроить избранное - закрепить до 2 групп\n🕗 Время утра - выбрать 07:00 / 07:30 / 08:00\n🧾 Мои настройки - посмотреть текущие настройки\n🔄 Сменить группу - сменить основную группу\n🌅 Ежедневные сообщения - включить или выключить утренние сообщения\n\nКоманды:\n/start - запуск бота\n/help - это сообщение\n/today - расписание на сегодня\n/today 2-8 - быстро посмотреть любую доступную группу\n/tomorrow - расписание на завтра\n/tomorrow 2-8 - быстро посмотреть завтра для любой доступной группы\n/week - расписание на неделю\n/week 2-8 - быстро посмотреть неделю любой доступной группы\n/next - следующая или текущая пара\n/settings - открыть настройки\n/mysettings - показать ваши настройки\n/changegroup - выбрать группу\n/favorites - настроить избранные группы\n/morning - переключить ежедневные сообщения\n/morningtime - выбрать время утреннего сообщения',
-      admin: '\n\nАдмин:\n/stats - статистика\n/inactive - список неактивных пользователей\n/cleanupinactive - удалить неактивных из базы\n/broadcast текст - рассылка всем\n/broadcastgroup 2-7 текст - рассылка одной группе'
+      body: 'Бот помогает быстро смотреть расписание, видеть ближайшую пару, получать напоминания, сохранять избранные группы и получать утренние сообщения.\n\nКнопки:\n📅 Сегодня - расписание на сегодня\n📆 Завтра - расписание на завтра\n📖 Вся неделя - полное расписание на неделю\n📚 Следующая пара - текущая или ближайшая пара\n⭐ Избранное - быстрый просмотр закреплённых групп\n⚙️ Настройки - язык, напоминания, избранное и личные параметры\n\nКнопки в настройках:\n🌐 Язык - переключение RU / EN\n🔔 Уведомления - выбор времени напоминаний\n🔕 На сегодня - выключить напоминания до завтра\n⭐ Настроить избранное - закрепить до 2 групп\n🕗 Время утра - выбрать 07:00 / 07:30 / 08:00\n🧾 Мои настройки - посмотреть текущие настройки\n🔄 Сменить группу - сменить основную группу\n🌅 Ежедневные сообщения - включить или выключить утренние сообщения\n\nКоманды:\n/start - запуск бота\n/help - это сообщение\n/today - расписание на сегодня\n/today 2-8 - быстро посмотреть любую доступную группу\n/tomorrow - расписание на завтра\n/tomorrow 2-8 - быстро посмотреть завтра для любой доступной группы\n/week - расписание на неделю\n/week 2-8 - быстро посмотреть неделю любой доступной группы\n/next - следующая или текущая пара\n/settings - открыть настройки\n/mysettings - показать ваши настройки\n/changegroup - выбрать группу\n/favorites - настроить избранные группы\n/morning - переключить ежедневные сообщения\n/morningtime - выбрать время утреннего сообщения\n/mutetoday - отключить напоминания до завтра',
+      admin: '\n\nАдмин:\n/stats - статистика\n/user 123456789 - карточка пользователя\n/inactive - список неактивных пользователей\n/cleanupinactive - удалить неактивных из базы\n/broadcast текст - рассылка всем\n/broadcastgroup 2-7 текст - рассылка одной группе'
     },
     weekdays: {
       1: 'Понедельник',
