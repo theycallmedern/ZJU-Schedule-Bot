@@ -691,7 +691,32 @@ async function handleCallbackQuery(query, env) {
     }
 
     if (data === 'settings:change-group') {
-      await sendGroupPrompt(env, chatId, language);
+      await renderInlineGroupMenu(env, chatId, messageId, language);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:change-group:back') {
+      await renderInlineSettingsMenu(env, chatId, messageId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data.startsWith('settings:change-group:select:')) {
+      const groupName = data.slice('settings:change-group:select:'.length);
+      if (!CONFIG.GROUPS.includes(groupName)) {
+        await answerCallbackQuery(env, query.id);
+        return;
+      }
+
+      await setUserGroup(env.DB, chatId, groupName);
+      const freshUser = {
+        ...user,
+        group_name: groupName
+      };
+      await renderInlineSettingsMenu(env, chatId, messageId, language, freshUser, {
+        prefixText: t(language, 'groups.changed', { group: groupName })
+      });
       await answerCallbackQuery(env, query.id);
       return;
     }
@@ -1421,6 +1446,12 @@ async function sendNoGroupSelected(env, chatId, language) {
   });
 }
 
+async function renderInlineGroupMenu(env, chatId, messageId, language) {
+  await editOrSendMessage(env, chatId, messageId, t(language, 'common.chooseGroup'), {
+    reply_markup: inlineGroupKeyboard(language)
+  });
+}
+
 async function sendLanguagePrompt(env, chatId, language) {
   await sendMessage(env, chatId, t(language, 'common.pickLanguage'), {
     reply_markup: languageKeyboard(language)
@@ -2042,6 +2073,23 @@ function groupKeyboard(language) {
     keyboard: [...rows, [menu.back]],
     resize_keyboard: true
   };
+}
+
+function inlineGroupKeyboard(language) {
+  const menu = getLocale(language).menu;
+  const rows = [];
+
+  for (let index = 0; index < CONFIG.GROUPS.length; index += 2) {
+    rows.push(
+      CONFIG.GROUPS.slice(index, index + 2).map((groupName) => ({
+        text: buildGroupChoiceLabel(groupName),
+        callback_data: `settings:change-group:select:${groupName}`
+      }))
+    );
+  }
+
+  rows.push([{ text: menu.back, callback_data: 'settings:change-group:back' }]);
+  return { inline_keyboard: rows };
 }
 
 async function notifyAdminAboutNewUser(env, message) {
