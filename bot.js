@@ -42,6 +42,7 @@ import {
 import {
   answerCallbackQuery,
   editMessageText,
+  editMessageReplyMarkup,
   isTelegramUserUnavailableError,
   sendMessage
 } from './telegram.js';
@@ -437,6 +438,7 @@ async function handleCallbackQuery(query, env) {
     }
 
     if (data === 'settings:close') {
+      await clearInlineKeyboard(env, chatId, messageId);
       await sendMainMenu(env, chatId, language, t(language, 'common.mainMenu'));
       await answerCallbackQuery(env, query.id);
       return;
@@ -1203,6 +1205,19 @@ async function editOrSendMessage(env, chatId, messageId, text, options = {}) {
 
     console.error('edit_message_fallback', { chatId, messageId, error: String(error) });
     await sendMessage(env, chatId, text, options);
+  }
+}
+
+async function clearInlineKeyboard(env, chatId, messageId) {
+  try {
+    await editMessageReplyMarkup(env, chatId, messageId, { inline_keyboard: [] });
+  } catch (error) {
+    const message = String(error?.message ?? error ?? '').toLowerCase();
+    if (message.includes('message is not modified')) {
+      return;
+    }
+
+    console.error('clear_inline_keyboard_error', { chatId, messageId, error: String(error) });
   }
 }
 

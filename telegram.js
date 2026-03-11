@@ -57,6 +57,14 @@ export async function answerCallbackQuery(env, callbackQueryId, options = {}) {
   });
 }
 
+export async function editMessageReplyMarkup(env, chatId, messageId, replyMarkup) {
+  return callTelegram(env, 'editMessageReplyMarkup', {
+    chat_id: chatId,
+    message_id: messageId,
+    reply_markup: replyMarkup
+  });
+}
+
 export function isTelegramUserUnavailableError(error) {
   const value = String(error?.message ?? error ?? '').toLowerCase();
   return value.includes('bot was blocked by the user')
