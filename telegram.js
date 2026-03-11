@@ -39,6 +39,24 @@ export async function sendMessage(env, chatId, text, options = {}) {
   });
 }
 
+export async function editMessageText(env, chatId, messageId, text, options = {}) {
+  return callTelegram(env, 'editMessageText', {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: 'HTML',
+    disable_web_page_preview: true,
+    ...options
+  });
+}
+
+export async function answerCallbackQuery(env, callbackQueryId, options = {}) {
+  return callTelegram(env, 'answerCallbackQuery', {
+    callback_query_id: callbackQueryId,
+    ...options
+  });
+}
+
 export function isTelegramUserUnavailableError(error) {
   const value = String(error?.message ?? error ?? '').toLowerCase();
   return value.includes('bot was blocked by the user')

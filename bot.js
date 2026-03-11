@@ -39,7 +39,12 @@ import {
   formatSettingsSummary,
   prependQuickGroupHeader
 } from './formatters.js';
-import { isTelegramUserUnavailableError, sendMessage } from './telegram.js';
+import {
+  answerCallbackQuery,
+  editMessageText,
+  isTelegramUserUnavailableError,
+  sendMessage
+} from './telegram.js';
 import { getLocale, resolveLanguage, SUPPORTED_LANGUAGES, t } from './translations.js';
 import {
   CONFIG,
@@ -58,6 +63,12 @@ import {
 } from './utils.js';
 
 export async function handleUpdate(update, env) {
+  const callbackQuery = update?.callback_query;
+  if (callbackQuery?.id) {
+    await handleCallbackQuery(callbackQuery, env);
+    return;
+  }
+
   const message = update?.message;
   if (!message || typeof message.text !== 'string') {
     return;
@@ -394,6 +405,155 @@ async function handleCommand({ text, chatId, env, user, language }) {
   }
 
   await sendMainMenu(env, chatId, language, t(language, 'common.unknownCommand'));
+}
+
+async function handleCallbackQuery(query, env) {
+  const data = String(query?.data ?? '').trim();
+  const chatId = Number(query?.message?.chat?.id);
+  const messageId = Number(query?.message?.message_id);
+  if (!data || !Number.isFinite(chatId) || !Number.isFinite(messageId)) {
+    if (query?.id) {
+      await answerCallbackQuery(env, query.id).catch(() => {});
+    }
+    return;
+  }
+
+  const defaultLang = pickLanguageByTelegram(query?.from?.language_code);
+  if (query?.message?.chat?.type !== 'private') {
+    await answerCallbackQuery(env, query.id, { text: t(defaultLang, 'common.privateOnly') }).catch(() => {});
+    return;
+  }
+
+  const botInstanceId = getBotInstanceId(env);
+  const ensured = await ensureUserWithMeta(env.DB, chatId, defaultLang, botInstanceId, query.from);
+  const user = ensured.user;
+  const language = resolveLanguage(user?.language ?? defaultLang);
+
+  try {
+    if (data === 'settings:open' || data === 'settings:back') {
+      await renderInlineSettingsMenu(env, chatId, messageId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:language') {
+      await renderInlineLanguageMenu(env, chatId, messageId, language);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data.startsWith('settings:language:')) {
+      const nextLanguage = resolveLanguage(data.slice('settings:language:'.length) || language);
+      await setUserLanguage(env.DB, chatId, nextLanguage);
+      const freshUser = { ...user, language: nextLanguage };
+      await renderInlineSettingsMenu(env, chatId, messageId, nextLanguage, freshUser, {
+        prefixText: t(nextLanguage, 'settings.languageUpdated', {
+          language: getLocale(nextLanguage).labels[
+            nextLanguage === 'ru' ? 'russian' : nextLanguage === 'zh' ? 'chinese' : 'english'
+          ]
+        })
+      });
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:notifications') {
+      await renderInlineNotificationsMenu(env, chatId, messageId, language);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data.startsWith('settings:notifications:')) {
+      const choiceRaw = data.slice('settings:notifications:'.length);
+      const choice = parseReminderChoice(choiceRaw);
+      if (!choice) {
+        await answerCallbackQuery(env, query.id);
+        return;
+      }
+
+      await setUserNotifications(env.DB, chatId, choice.enabled, choice.minutes);
+      const freshUser = {
+        ...user,
+        notifications_enabled: choice.enabled,
+        reminder_minutes: choice.minutes
+      };
+      const value = choice.enabled ? `${choice.minutes} min` : t(language, 'settings.disabled');
+      await renderInlineSettingsMenu(env, chatId, messageId, language, freshUser, {
+        prefixText: t(language, 'settings.notificationsUpdated', { value })
+      });
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:morning-time') {
+      await renderInlineMorningTimeMenu(env, chatId, messageId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data.startsWith('settings:morning-time:')) {
+      const choice = parseMorningTimeChoice(data.slice('settings:morning-time:'.length));
+      if (!choice) {
+        await answerCallbackQuery(env, query.id);
+        return;
+      }
+
+      await setUserMorningTime(env.DB, chatId, choice);
+      const freshUser = {
+        ...user,
+        morning_time: choice
+      };
+      await renderInlineSettingsMenu(env, chatId, messageId, language, freshUser, {
+        prefixText: t(language, 'settings.morningTimeUpdated', { value: choice })
+      });
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:morning-toggle') {
+      const nextValue = Number(user?.morning_enabled) === 1 ? 0 : 1;
+      await setUserMorningEnabled(env.DB, chatId, nextValue);
+      const freshUser = {
+        ...user,
+        morning_enabled: nextValue
+      };
+      const value = nextValue === 1 ? t(language, 'settings.enabled') : t(language, 'settings.disabled');
+      await renderInlineSettingsMenu(env, chatId, messageId, language, freshUser, {
+        prefixText: t(language, 'settings.morningUpdated', { value })
+      });
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:favorites') {
+      await sendFavoritesPrompt(env, chatId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:notes') {
+      await sendNotesMenu(env, chatId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:my-settings') {
+      await sendSettingsDetails(env, chatId, language, user);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    if (data === 'settings:change-group') {
+      await sendGroupPrompt(env, chatId, language);
+      await answerCallbackQuery(env, query.id);
+      return;
+    }
+
+    await answerCallbackQuery(env, query.id);
+  } catch (error) {
+    console.error('callback_query_error', { chatId, data, error: String(error) });
+    await answerCallbackQuery(env, query.id, { text: 'Error' }).catch(() => {});
+  }
 }
 
 async function onToday({ env, chatId, user, language }) {
@@ -1026,6 +1186,20 @@ async function sendMainMenu(env, chatId, language, text) {
   });
 }
 
+async function editOrSendMessage(env, chatId, messageId, text, options = {}) {
+  try {
+    await editMessageText(env, chatId, messageId, text, options);
+  } catch (error) {
+    const message = String(error?.message ?? error ?? '').toLowerCase();
+    if (message.includes('message is not modified')) {
+      return;
+    }
+
+    console.error('edit_message_fallback', { chatId, messageId, error: String(error) });
+    await sendMessage(env, chatId, text, options);
+  }
+}
+
 async function sendSettingsText(env, chatId, language, text) {
   await sendMessage(env, chatId, text, {
     reply_markup: settingsKeyboard(language)
@@ -1033,11 +1207,42 @@ async function sendSettingsText(env, chatId, language, text) {
 }
 
 async function sendSettingsMenu(env, chatId, language, user) {
-  await sendSettingsText(env, chatId, language, formatSettingsSummary(language, user));
+  await sendMessage(env, chatId, formatSettingsSummary(language, user), {
+    reply_markup: inlineSettingsKeyboard(language)
+  });
 }
 
 async function sendSettingsDetails(env, chatId, language, user) {
   await sendSettingsText(env, chatId, language, formatMySettings(language, user));
+}
+
+async function renderInlineSettingsMenu(env, chatId, messageId, language, user, options = {}) {
+  const prefixText = String(options.prefixText ?? '').trim();
+  const body = formatSettingsSummary(language, user);
+  const text = prefixText ? `${prefixText}\n\n${body}` : body;
+  await editOrSendMessage(env, chatId, messageId, text, {
+    reply_markup: inlineSettingsKeyboard(language)
+  });
+}
+
+async function renderInlineLanguageMenu(env, chatId, messageId, language) {
+  await editOrSendMessage(env, chatId, messageId, t(language, 'common.pickLanguage'), {
+    reply_markup: inlineLanguageKeyboard(language)
+  });
+}
+
+async function renderInlineNotificationsMenu(env, chatId, messageId, language) {
+  await editOrSendMessage(env, chatId, messageId, t(language, 'common.pickNotifications'), {
+    reply_markup: inlineNotificationsKeyboard(language)
+  });
+}
+
+async function renderInlineMorningTimeMenu(env, chatId, messageId, language, user) {
+  const currentValue = user?.morning_time || CONFIG.DEFAULT_MORNING_TIME;
+  const text = `${t(language, 'common.pickMorningTime')}\n\n${t(language, 'settings.morningTime')}: <b>${escapeHtml(currentValue)}</b>`;
+  await editOrSendMessage(env, chatId, messageId, text, {
+    reply_markup: inlineMorningTimeKeyboard(language, currentValue)
+  });
 }
 
 async function sendGroupPrompt(env, chatId, language, prefixText = '') {
@@ -1294,6 +1499,71 @@ function settingsKeyboard(language) {
   };
 }
 
+function inlineSettingsKeyboard(language) {
+  const menu = getLocale(language).menu;
+  return {
+    inline_keyboard: [
+      [
+        { text: menu.language, callback_data: 'settings:language' },
+        { text: menu.notifications, callback_data: 'settings:notifications' }
+      ],
+      [
+        { text: menu.morningTime, callback_data: 'settings:morning-time' },
+        { text: menu.morningToggle, callback_data: 'settings:morning-toggle' }
+      ],
+      [
+        { text: menu.favoritesManage, callback_data: 'settings:favorites' },
+        { text: menu.notes, callback_data: 'settings:notes' }
+      ],
+      [
+        { text: menu.mySettings, callback_data: 'settings:my-settings' },
+        { text: menu.changeGroup, callback_data: 'settings:change-group' }
+      ],
+      [
+        { text: menu.back, callback_data: 'settings:back' }
+      ]
+    ]
+  };
+}
+
+function inlineLanguageKeyboard(language) {
+  const menu = getLocale(language).menu;
+  const labels = getLocale(language).labels;
+  return {
+    inline_keyboard: [
+      [
+        { text: labels.russian, callback_data: 'settings:language:ru' },
+        { text: labels.english, callback_data: 'settings:language:en' }
+      ],
+      [
+        { text: labels.chinese, callback_data: 'settings:language:zh' }
+      ],
+      [
+        { text: menu.back, callback_data: 'settings:back' }
+      ]
+    ]
+  };
+}
+
+function inlineNotificationsKeyboard(language) {
+  const menu = getLocale(language).menu;
+  const labels = getLocale(language).labels;
+  return {
+    inline_keyboard: [
+      [
+        { text: '5 min', callback_data: 'settings:notifications:5 min' },
+        { text: '10 min', callback_data: 'settings:notifications:10 min' }
+      ],
+      [
+        { text: labels.off, callback_data: 'settings:notifications:off' }
+      ],
+      [
+        { text: menu.back, callback_data: 'settings:back' }
+      ]
+    ]
+  };
+}
+
 function languageKeyboard(language) {
   const menu = getLocale(language).menu;
   const labels = getLocale(language).labels;
@@ -1357,6 +1627,25 @@ function morningTimeKeyboard(language, currentValue) {
     keyboard: [...rows, [menu.back]],
     resize_keyboard: true
   };
+}
+
+function inlineMorningTimeKeyboard(language, currentValue) {
+  const menu = getLocale(language).menu;
+  const options = CONFIG.MORNING_TIME_OPTIONS;
+  const rows = [];
+
+  for (let index = 0; index < options.length; index += 2) {
+    rows.push(
+      options.slice(index, index + 2).map((value) => ({
+        text: value === currentValue ? `✅ ${value}` : value,
+        callback_data: `settings:morning-time:${value}`
+      }))
+    );
+  }
+
+  rows.push([{ text: menu.back, callback_data: 'settings:back' }]);
+
+  return { inline_keyboard: rows };
 }
 
 function notesMenuKeyboard(language) {
