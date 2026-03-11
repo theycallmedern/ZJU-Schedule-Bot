@@ -27,7 +27,6 @@ import {
   formatAdminInactiveUsersMessage,
   formatAdminStats,
   formatAdminUserCard,
-  formatAdminUsersByGroupMessages,
   formatEveningPreview,
   formatFullWeek,
   formatHelp,
@@ -663,14 +662,12 @@ async function onStats({ env, chatId, language }) {
     console.error('stats_daily_fetch_error', error);
   }
 
-  await sendMessage(env, chatId, formatAdminStats(language, stats, dailyStats, now.dateKey));
-
-  const membersMessages = formatAdminUsersByGroupMessages(language, stats.byGroupMembers);
-  for (const text of membersMessages) {
+  const statsMessages = formatAdminStats(language, stats, dailyStats, now.dateKey);
+  for (const text of statsMessages) {
     try {
       await sendMessage(env, chatId, text);
     } catch (error) {
-      console.error('stats_members_send_error', { chatId, error: String(error) });
+      console.error('stats_send_error', { chatId, error: String(error) });
     }
   }
 }

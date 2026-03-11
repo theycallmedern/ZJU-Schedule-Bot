@@ -311,22 +311,13 @@ export function formatReminder(language, lesson, minutesLeft) {
 }
 
 export function formatAdminStats(language, stats, dailyStats = null, dateKey = '') {
+  const byGroupMessages = formatAdminUsersByGroupMessages(language, stats.byGroupMembers, { includeHeader: false });
   const lines = [t(language, 'admin.statsTitle'), ''];
   lines.push(t(language, 'admin.totalUsers', { count: stats.totalUsers }));
   if (Number.isFinite(stats.inactiveUsers) && stats.inactiveUsers > 0) {
     lines.push(t(language, 'admin.inactiveUsers', { count: stats.inactiveUsers }));
   }
   lines.push(t(language, 'admin.notificationsOn', { count: stats.notificationsEnabled }));
-  lines.push('');
-  lines.push(t(language, 'admin.byGroupTitle'));
-
-  if (!stats.byGroup.length) {
-    lines.push('• -');
-  } else {
-    for (const item of stats.byGroup) {
-      lines.push(`• ${escapeHtml(formatGroupLabel(item.group_name))}: <b>${item.count}</b>`);
-    }
-  }
 
   if (dailyStats) {
     lines.push('');
@@ -345,24 +336,31 @@ export function formatAdminStats(language, stats, dailyStats = null, dateKey = '
     }));
   }
 
-  return lines.join('\n');
+  if (!byGroupMessages.length) {
+    return [lines.join('\n')];
+  }
+
+  const [firstMembersBlock, ...restBlocks] = byGroupMessages;
+  return [`${lines.join('\n')}\n\n${firstMembersBlock}`, ...restBlocks];
 }
 
-export function formatAdminUsersByGroupMessages(language, byGroupMembers) {
+export function formatAdminUsersByGroupMessages(language, byGroupMembers, options = {}) {
   const maxLength = 3500;
+  const includeHeader = options.includeHeader !== false;
   const header = t(language, 'admin.usersByGroupTitle');
 
   const groups = Array.isArray(byGroupMembers) ? byGroupMembers : [];
   if (!groups.length) {
-    return [`${header}\n\n• ${t(language, 'admin.noUsers')}`];
+    const emptyText = `• ${t(language, 'admin.noUsers')}`;
+    return [includeHeader ? `${header}\n\n${emptyText}` : emptyText];
   }
 
   const chunks = [];
-  let current = `${header}\n\n`;
+  let current = includeHeader ? `${header}\n\n` : '';
 
   for (const group of groups) {
-    const groupTitle = `<b>${escapeHtml(formatGroupLabel(group.group_name || '-'))}</b>\n`;
     const members = Array.isArray(group.members) ? group.members : [];
+    const groupTitle = `<b>${escapeHtml(formatGroupLabel(group.group_name || '-'))}</b>    ${members.length} ${escapeHtml(formatGroupMembersCount(language, members.length))}\n`;
     const memberLines = members.length
       ? members.map((member) => {
         const lastSeen = normalizeDateTime(member.last_seen_at, language);
@@ -382,26 +380,26 @@ export function formatAdminUsersByGroupMessages(language, byGroupMembers) {
       })
       : [`• ${t(language, 'admin.noUsers')}`];
 
-    if ((current + groupTitle).length > maxLength && current.trim().length > header.length) {
+    if ((current + groupTitle).length > maxLength && current.trim().length > (includeHeader ? header.length : 0)) {
       chunks.push(current.trimEnd());
-      current = `${header}\n\n`;
+      current = includeHeader ? `${header}\n\n` : '';
     }
 
     current += groupTitle;
 
     for (const memberLine of memberLines) {
       const line = `${memberLine}\n`;
-      if ((current + line).length > maxLength && current.trim().length > header.length) {
+      if ((current + line).length > maxLength && current.trim().length > (includeHeader ? header.length : 0)) {
         chunks.push(current.trimEnd());
-        current = `${header}\n\n${groupTitle}${line}`;
+        current = `${includeHeader ? `${header}\n\n` : ''}${groupTitle}${line}`;
       } else {
         current += line;
       }
     }
 
-    if ((current + '\n').length > maxLength && current.trim().length > header.length) {
+    if ((current + '\n').length > maxLength && current.trim().length > (includeHeader ? header.length : 0)) {
       chunks.push(current.trimEnd());
-      current = `${header}\n\n`;
+      current = includeHeader ? `${header}\n\n` : '';
     } else {
       current += '\n';
     }
@@ -567,6 +565,16 @@ function formatRussianDays(days) {
   return 'дней';
 }
 
+function formatRussianPeople(count) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'человека';
+  }
+  return 'человек';
+}
+
 export function formatAdminDailyReport(language, dateKey, dailyStats) {
   return [
     t(language, 'admin.dailyTitle', { date: dateKey }),
@@ -722,6 +730,16 @@ function getReminderMuteState(language, user) {
   return user?.reminder_mute_until_date === now.dateKey
     ? t(language, 'settings.mutedToday')
     : t(language, 'settings.notMuted');
+}
+
+function formatGroupMembersCount(language, count) {
+  if (language === 'ru') {
+    return `${count} ${formatRussianPeople(count)} в группе`;
+  }
+  if (language === 'zh') {
+    return `组内 ${count} 人`;
+  }
+  return `${count} users in group`;
 }
 
 function formatGroupLabel(groupName) {
