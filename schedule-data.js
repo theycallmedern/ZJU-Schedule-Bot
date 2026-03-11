@@ -198,6 +198,96 @@ export const STATIC_SCHEDULE = [
     end_time: '11:30'
   },
   {
+    group_name: '2-2',
+    day_of_week: 'monday',
+    lesson_number: 1,
+    subject: 'Intensive Reading II',
+    teacher: 'Qiu Tingting',
+    classroom: '1-601',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'monday',
+    lesson_number: 2,
+    subject: 'Spoken Chinese II',
+    teacher: 'Zheng Yadan',
+    classroom: '1-601',
+    start_time: '14:45',
+    end_time: '16:15'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'tuesday',
+    lesson_number: 1,
+    subject: 'Intensive Reading II',
+    teacher: 'Qiu Tingting',
+    classroom: '1-601',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'wednesday',
+    lesson_number: 1,
+    subject: 'Intensive Reading II',
+    teacher: 'Qiu Tingting',
+    classroom: '1-601',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'wednesday',
+    lesson_number: 2,
+    subject: 'Chinese Listening II',
+    teacher: 'Tao Hongyang',
+    classroom: '1-601',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'thursday',
+    lesson_number: 1,
+    subject: 'Spoken Chinese II',
+    teacher: 'Zheng Yadan',
+    classroom: '1-601',
+    start_time: '13:00',
+    end_time: '14:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'thursday',
+    lesson_number: 2,
+    subject: 'Intensive Reading II',
+    teacher: 'Qiu Tingting',
+    classroom: '1-601',
+    start_time: '14:45',
+    end_time: '16:15'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'friday',
+    lesson_number: 1,
+    subject: 'Chinese Listening II',
+    teacher: 'Tao Hongyang',
+    classroom: '1-601',
+    start_time: '08:00',
+    end_time: '09:30'
+  },
+  {
+    group_name: '2-2',
+    day_of_week: 'friday',
+    lesson_number: 2,
+    subject: 'Intensive Reading II',
+    teacher: 'Qiu Tingting',
+    classroom: '1-601',
+    start_time: '10:00',
+    end_time: '11:30'
+  },
+  {
     group_name: '2-4',
     day_of_week: 'monday',
     lesson_number: 1,
