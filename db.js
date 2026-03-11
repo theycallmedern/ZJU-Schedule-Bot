@@ -435,8 +435,8 @@ export async function getStats(db) {
 
   try {
     const sql = useActiveFilter
-      ? 'SELECT group_name, chat_id, tg_username, tg_first_name, tg_last_name FROM users WHERE group_name IS NOT NULL AND COALESCE(is_active, 1) = 1 ORDER BY group_name ASC, chat_id ASC'
-      : 'SELECT group_name, chat_id, tg_username, tg_first_name, tg_last_name FROM users WHERE group_name IS NOT NULL ORDER BY group_name ASC, chat_id ASC';
+      ? 'SELECT group_name, chat_id, tg_username, tg_first_name, tg_last_name, last_seen_at FROM users WHERE group_name IS NOT NULL AND COALESCE(is_active, 1) = 1 ORDER BY group_name ASC, chat_id ASC'
+      : 'SELECT group_name, chat_id, tg_username, tg_first_name, tg_last_name, last_seen_at FROM users WHERE group_name IS NOT NULL ORDER BY group_name ASC, chat_id ASC';
     const members = await db.prepare(sql).all();
     membersRows = members.results ?? [];
   } catch (error) {
@@ -464,7 +464,8 @@ export async function getStats(db) {
       chat_id: Number(row.chat_id),
       tg_username: row.tg_username ?? null,
       tg_first_name: row.tg_first_name ?? null,
-      tg_last_name: row.tg_last_name ?? null
+      tg_last_name: row.tg_last_name ?? null,
+      last_seen_at: row.last_seen_at ?? null
     });
   }
 
@@ -481,6 +482,40 @@ export async function getStats(db) {
       members: byGroupMembersMap.get(row.group_name) ?? []
     }))
   };
+}
+
+export async function getInactiveUsers(db) {
+  try {
+    const response = await db
+      .prepare(
+        'SELECT chat_id, group_name, tg_username, tg_first_name, tg_last_name, last_seen_at, deactivated_at FROM users WHERE COALESCE(is_active, 1) = 0 ORDER BY deactivated_at DESC, chat_id ASC'
+      )
+      .all();
+    return (response.results ?? []).map((row) => ({
+      chat_id: Number(row.chat_id),
+      group_name: row.group_name ?? null,
+      tg_username: row.tg_username ?? null,
+      tg_first_name: row.tg_first_name ?? null,
+      tg_last_name: row.tg_last_name ?? null,
+      last_seen_at: row.last_seen_at ?? null,
+      deactivated_at: row.deactivated_at ?? null
+    }));
+  } catch (error) {
+    console.error('get_inactive_users_warning', { error: String(error) });
+    return [];
+  }
+}
+
+export async function cleanupInactiveUsers(db) {
+  try {
+    const result = await db
+      .prepare('DELETE FROM users WHERE COALESCE(is_active, 1) = 0')
+      .run();
+    return Number(result?.meta?.changes ?? 0);
+  } catch (error) {
+    console.error('cleanup_inactive_users_warning', { error: String(error) });
+    return 0;
+  }
 }
 
 export async function logCronDelivery(db, dateKey, kind, sent, failed) {

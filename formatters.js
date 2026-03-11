@@ -262,9 +262,10 @@ export function formatAdminUsersByGroupMessages(language, byGroupMembers) {
     const members = Array.isArray(group.members) ? group.members : [];
     const memberLines = members.length
       ? members.map((member) => {
+        const lastSeen = normalizeDateTime(member.last_seen_at);
         const username = normalizeUsername(member.tg_username);
         if (username) {
-          return `• @${escapeHtml(username)} (${member.chat_id})`;
+          return formatAdminUserLine(language, `@${escapeHtml(username)}`, member.chat_id, lastSeen);
         }
 
         const fullName = [member.tg_first_name, member.tg_last_name]
@@ -272,9 +273,14 @@ export function formatAdminUsersByGroupMessages(language, byGroupMembers) {
           .join(' ')
           .trim();
         if (fullName) {
-          return `• ${escapeHtml(fullName)} (${member.chat_id}, ${t(language, 'admin.noUsername')})`;
+          return formatAdminUserLine(
+            language,
+            escapeHtml(fullName),
+            `${member.chat_id}, ${t(language, 'admin.noUsername')}`,
+            lastSeen
+          );
         }
-        return `• ${member.chat_id} (${t(language, 'admin.noUsername')})`;
+        return formatAdminUserLine(language, String(member.chat_id), t(language, 'admin.noUsername'), lastSeen);
       })
       : [`• ${t(language, 'admin.noUsers')}`];
 
@@ -310,6 +316,40 @@ export function formatAdminUsersByGroupMessages(language, byGroupMembers) {
   return chunks;
 }
 
+export function formatAdminInactiveUsersMessage(language, inactiveUsers) {
+  const header = t(language, 'admin.inactiveTitle');
+  const users = Array.isArray(inactiveUsers) ? inactiveUsers : [];
+  if (!users.length) {
+    return `${header}\n\n• ${t(language, 'admin.inactiveNone')}`;
+  }
+
+  const lines = [header, ''];
+  for (const user of users) {
+    const username = normalizeUsername(user.tg_username);
+    const fullName = [user.tg_first_name, user.tg_last_name].filter(Boolean).join(' ').trim();
+    const identity = username
+      ? `@${escapeHtml(username)}`
+      : fullName
+        ? escapeHtml(fullName)
+        : String(user.chat_id);
+    const meta = [`${user.chat_id}`];
+    if (user.group_name) {
+      meta.push(user.group_name);
+    }
+    const lastSeen = normalizeDateTime(user.last_seen_at);
+    const deactivatedAt = normalizeDateTime(user.deactivated_at);
+    if (lastSeen) {
+      meta.push(`${t(language, 'admin.lastSeen')}: ${escapeHtml(lastSeen)}`);
+    }
+    if (deactivatedAt) {
+      meta.push(`${t(language, 'admin.deactivatedAt')}: ${escapeHtml(deactivatedAt)}`);
+    }
+    lines.push(`• ${identity} (${meta.join(', ')})`);
+  }
+
+  return lines.join('\n');
+}
+
 function normalizeUsername(username) {
   if (!username) {
     return '';
@@ -319,6 +359,23 @@ function normalizeUsername(username) {
     return '';
   }
   return value.startsWith('@') ? value.slice(1) : value;
+}
+
+function normalizeDateTime(value) {
+  const text = String(value ?? '').trim();
+  if (!text) {
+    return '';
+  }
+
+  return text.replace('T', ' ').replace(/\.\d+Z?$/, '').replace(/Z$/, '');
+}
+
+function formatAdminUserLine(language, identity, meta, lastSeen) {
+  const parts = [String(meta)];
+  if (lastSeen) {
+    parts.push(`${t(language, 'admin.lastSeen')}: ${escapeHtml(lastSeen)}`);
+  }
+  return `• ${identity} (${parts.join(', ')})`;
 }
 
 export function formatAdminDailyReport(language, dateKey, dailyStats) {

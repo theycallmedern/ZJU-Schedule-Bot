@@ -1,7 +1,9 @@
 import {
+  cleanupInactiveUsers,
   ensureUserWithMeta,
   getAllUsers,
   getDailyCronDeliveryStats,
+  getInactiveUsers,
   getLessonsByGroupAndWeekday,
   getStats,
   getUser,
@@ -16,6 +18,7 @@ import {
   getWeekLessonsByGroup
 } from './db.js';
 import {
+  formatAdminInactiveUsersMessage,
   formatAdminStats,
   formatAdminUsersByGroupMessages,
   formatFullWeek,
@@ -312,6 +315,16 @@ async function handleCommand({ text, chatId, env, user, language }) {
     return;
   }
 
+  if (command === '/inactive') {
+    await onInactive({ env, chatId, language });
+    return;
+  }
+
+  if (command === '/cleanupinactive') {
+    await onCleanupInactive({ env, chatId, language });
+    return;
+  }
+
   if (command === '/help') {
     await onHelp({ env, chatId, language });
     return;
@@ -589,6 +602,26 @@ async function onStats({ env, chatId, language }) {
       console.error('stats_members_send_error', { chatId, error: String(error) });
     }
   }
+}
+
+async function onInactive({ env, chatId, language }) {
+  if (!isAdmin(chatId, env)) {
+    await sendMessage(env, chatId, t(language, 'common.accessDenied'));
+    return;
+  }
+
+  const inactiveUsers = await getInactiveUsers(env.DB);
+  await sendMessage(env, chatId, formatAdminInactiveUsersMessage(language, inactiveUsers));
+}
+
+async function onCleanupInactive({ env, chatId, language }) {
+  if (!isAdmin(chatId, env)) {
+    await sendMessage(env, chatId, t(language, 'common.accessDenied'));
+    return;
+  }
+
+  const removed = await cleanupInactiveUsers(env.DB);
+  await sendMessage(env, chatId, t(language, 'admin.cleanupInactiveDone', { count: removed }));
 }
 
 async function onHelp({ env, chatId, language }) {
