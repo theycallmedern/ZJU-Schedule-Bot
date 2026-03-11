@@ -556,6 +556,7 @@ export async function getStats(db) {
   let inactive = null;
   let notifications = null;
   let groups = { results: [] };
+  let usersWithGroup = { count: 0 };
   let useActiveFilter = true;
 
   try {
@@ -563,6 +564,9 @@ export async function getStats(db) {
     inactive = await db.prepare('SELECT COUNT(*) AS count FROM users WHERE COALESCE(is_active, 1) = 0').first();
     notifications = await db
       .prepare('SELECT COUNT(*) AS count FROM users WHERE notifications_enabled = 1 AND COALESCE(is_active, 1) = 1')
+      .first();
+    usersWithGroup = await db
+      .prepare('SELECT COUNT(*) AS count FROM users WHERE group_name IS NOT NULL AND COALESCE(is_active, 1) = 1')
       .first();
     groups = await db
       .prepare('SELECT group_name, COUNT(*) AS count FROM users WHERE group_name IS NOT NULL AND COALESCE(is_active, 1) = 1 GROUP BY group_name ORDER BY group_name ASC')
@@ -574,6 +578,9 @@ export async function getStats(db) {
     inactive = { count: 0 };
     notifications = await db
       .prepare('SELECT COUNT(*) AS count FROM users WHERE notifications_enabled = 1')
+      .first();
+    usersWithGroup = await db
+      .prepare('SELECT COUNT(*) AS count FROM users WHERE group_name IS NOT NULL')
       .first();
     groups = await db
       .prepare('SELECT group_name, COUNT(*) AS count FROM users WHERE group_name IS NOT NULL GROUP BY group_name ORDER BY group_name ASC')
@@ -619,6 +626,8 @@ export async function getStats(db) {
 
   return {
     totalUsers: Number(total?.count ?? 0),
+    usersWithGroup: Number(usersWithGroup?.count ?? 0),
+    usersWithoutGroup: Number(total?.count ?? 0) - Number(usersWithGroup?.count ?? 0),
     inactiveUsers: Number(inactive?.count ?? 0),
     notificationsEnabled: Number(notifications?.count ?? 0),
     byGroup: (groups.results ?? []).map((row) => ({

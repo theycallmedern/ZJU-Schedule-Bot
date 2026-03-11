@@ -314,6 +314,10 @@ export function formatAdminStats(language, stats, dailyStats = null, dateKey = '
   const byGroupMessages = formatAdminUsersByGroupMessages(language, stats.byGroupMembers, { includeHeader: false });
   const lines = [t(language, 'admin.statsTitle'), ''];
   lines.push(t(language, 'admin.totalUsers', { count: stats.totalUsers }));
+  lines.push(t(language, 'admin.usersWithGroup', { count: stats.usersWithGroup ?? 0 }));
+  if (Number.isFinite(stats.usersWithoutGroup) && stats.usersWithoutGroup > 0) {
+    lines.push(t(language, 'admin.usersWithoutGroup', { count: stats.usersWithoutGroup }));
+  }
   if (Number.isFinite(stats.inactiveUsers) && stats.inactiveUsers > 0) {
     lines.push(t(language, 'admin.inactiveUsers', { count: stats.inactiveUsers }));
   }
