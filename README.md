@@ -24,6 +24,12 @@ The project keeps the runtime simple:
 - user state lives in Cloudflare D1
 - no external npm libraries are used
 
+## Bot
+
+Telegram bot: **ZJU Schedule Bot**
+
+If you are sharing this repository publicly, users can find the bot in Telegram by name.
+
 ## Preview
 
 ### Core experience
