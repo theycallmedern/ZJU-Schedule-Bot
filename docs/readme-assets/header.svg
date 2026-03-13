@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="220" viewBox="0 0 1000 220" role="img" aria-labelledby="title desc">
+  <title id="title">ZJU Schedule Bot</title>
+  <desc id="desc">Repository header with the bot icon, product name, and a divider line.</desc>
+  <style>
+    .title {
+      fill: #f0f6fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 56px;
+      font-weight: 700;
+    }
+    .divider {
+      stroke: #30363d;
+      stroke-width: 2;
+    }
+  </style>
+  <image href="./schedule-bot-icon.png" x="170" y="34" width="132" height="132" preserveAspectRatio="xMidYMid meet" />
+  <text class="title" x="340" y="108">ZJU Schedule Bot</text>
+  <line class="divider" x1="70" y1="188" x2="930" y2="188" />
+</svg>
