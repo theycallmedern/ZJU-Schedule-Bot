@@ -1,5 +1,10 @@
+<h1 align="center">
+  <img src="./docs/readme-assets/header-icon.png" alt="ZJU Schedule Bot icon" width="96" />
+  ZJU Schedule Bot
+</h1>
+
 <p align="center">
-  <img src="./docs/readme-assets/header.svg" alt="ZJU Schedule Bot" width="920" />
+  <img src="./docs/readme-assets/divider.svg" alt="" width="920" />
 </p>
 
 <p align="center">A fast, production-style Telegram bot for ZJU language-program schedules.</p>
